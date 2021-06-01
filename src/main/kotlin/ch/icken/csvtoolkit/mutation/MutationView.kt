@@ -1,4 +1,4 @@
-package ch.icken.csvtoolkit.files
+package ch.icken.csvtoolkit.mutation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,9 +21,9 @@ import androidx.compose.ui.unit.dp
 import ch.icken.csvtoolkit.ToolkitInstance
 
 @Composable
-fun FilesView(
+fun MutationView(
     instance: ToolkitInstance,
-    onAddFile: () -> Unit
+    onAddMutation: () -> Unit
 ) = Column(
     modifier = Modifier.fillMaxWidth()
 ) {
@@ -33,34 +33,34 @@ fun FilesView(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Files",
+            text = "Mutations",
             style = MaterialTheme.typography.h6
         )
         Spacer(Modifier.weight(1f))
         IconButton(
-            onClick = onAddFile
+            onClick = onAddMutation
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Add File"
+                contentDescription = "Add Mutation"
             )
         }
     }
     LazyColumn {
-        items(instance.files) {
-            FilesItemView(it)
+        items(instance.mutations) {
+            MutationItemView(it)
         }
     }
 }
 
 @Composable
-private fun FilesItemView(file: TabulatedFile) = Row(
+private fun MutationItemView(mutation: Mutation) = Row(
     modifier = Modifier.height(48.dp)
         .padding(start = 16.dp, end = 4.dp),
     verticalAlignment = Alignment.CenterVertically
 ) {
     Text(
-        text = file.path,
+        text = mutation.description,
         style = MaterialTheme.typography.body1
     )
 }

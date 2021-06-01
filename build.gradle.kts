@@ -21,12 +21,16 @@ dependencies {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions {
+        jvmTarget = "11"
+        //This allows us to use the experimental Material API calls
+        freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn"
+    }
 }
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "ch.icken.csvtoolkit.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "csvtoolkit"
