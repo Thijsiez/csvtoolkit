@@ -1,8 +1,8 @@
 package ch.icken.csvtoolkit.mutation
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,14 +29,15 @@ fun MutationView(
 ) {
     Row(
         modifier = Modifier.height(56.dp)
-            .padding(start = 16.dp, end = 4.dp),
+            .fillMaxWidth()
+            .padding(start = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "Mutations",
             style = MaterialTheme.typography.h6
         )
-        Spacer(Modifier.weight(1f))
         IconButton(
             onClick = onAddMutation
         ) {
@@ -56,7 +57,9 @@ fun MutationView(
 @Composable
 private fun MutationItemView(mutation: Mutation) = Row(
     modifier = Modifier.height(48.dp)
-        .padding(start = 16.dp, end = 4.dp),
+        .fillMaxWidth()
+        .padding(start = 16.dp, end = 12.dp),
+    horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
 ) {
     Text(

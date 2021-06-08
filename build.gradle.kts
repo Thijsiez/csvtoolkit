@@ -3,8 +3,8 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.5.0"
-    id("org.jetbrains.compose") version "0.4.0-build209"
+    kotlin("jvm") version "1.5.10"
+    id("org.jetbrains.compose") version "0.4.0"
 }
 
 group = "ch.icken"
@@ -18,6 +18,7 @@ repositories {
 
 dependencies {
     implementation(compose.desktop.currentOs)
+    implementation("com.github.doyaaaaaken:kotlin-csv-jvm:0.15.2")
 }
 
 tasks.withType<KotlinCompile> {

@@ -1,7 +1,6 @@
 package ch.icken.csvtoolkit
 
 import androidx.compose.desktop.DesktopMaterialTheme
-import androidx.compose.desktop.Window
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -12,24 +11,36 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowSize
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import ch.icken.csvtoolkit.files.FileAddDialog
 import ch.icken.csvtoolkit.files.FilesView
 import ch.icken.csvtoolkit.mutation.MutationView
 
-fun main() = Window(
-    title = "csvtoolkit",
-    size = IntSize(1280, 800),
-    resizable = false
-) {
+@OptIn(ExperimentalComposeUiApi::class)
+fun main() = application {
     val instance = remember {
         ToolkitInstance()
     }
+    val mainWindowState = rememberWindowState(
+        size = WindowSize(1280.dp, 800.dp)
+    )
 
-    DesktopMaterialTheme {
-        MainView(instance)
+    Window(
+        state = mainWindowState,
+        title = "csvtoolkit",
+        resizable = false,
+        initialAlignment = Alignment.Center
+    ) {
+        DesktopMaterialTheme {
+            MainView(instance)
+        }
     }
 }
 
@@ -56,6 +67,7 @@ private fun MainView(instance: ToolkitInstance) = Row(
 
     if (showAddFileDialog) {
         FileAddDialog(
+            onAddFile = { instance.files.add(it) },
             onHide = { showAddFileDialog = false }
         )
     }
