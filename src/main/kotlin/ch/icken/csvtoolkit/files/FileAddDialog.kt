@@ -52,15 +52,19 @@ fun FileAddDialog(
     )
     val fileName = remember { mutableStateOf(TextFieldValue("")) }
     val fileType = remember { mutableStateOf(TabulatedFile.Type.CSV) }
-    val fileTypeCsvDelimiter = remember { mutableStateOf(TabulatedFile.TypeCsvDelimiter.COMMA) }
-    val fileIsValid = remember { derivedStateOf { File(fileName.value.text).run { exists() && isFile } } }
-    val file = remember { derivedStateOf { when (fileType.value) {
-        TabulatedFile.Type.CSV -> CsvFile(
-            path = fileName.value.text,
-            delimiter = fileTypeCsvDelimiter.value
-        )
-        else -> TODO("Implement other types")
-    } } }
+    val fileTypeCsvDelimiter = remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
+    val fileIsValid = remember { derivedStateOf {
+        File(fileName.value.text).run { exists() && isFile }
+    } }
+    val file = remember { derivedStateOf {
+        when (fileType.value) {
+            TabulatedFile.Type.CSV -> CsvFile(
+                path = fileName.value.text,
+                delimiter = fileTypeCsvDelimiter.value
+            )
+            else -> TODO("Implement other types")
+        }
+    } }
 
     Dialog(
         state = dialogState,
@@ -68,7 +72,7 @@ fun FileAddDialog(
         undecorated = true,
         resizable = false,
         initialAlignment = Alignment.Center,
-        onCloseRequest = { onHide() }
+        onCloseRequest = onHide
     ) {
         DialogContent(
             titleText = titleText,
@@ -85,7 +89,7 @@ fun FileAddDialog(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { onHide() }
+                    onClick = onHide
                 ) {
                     Text("DISCARD")
                 }
@@ -128,7 +132,7 @@ fun FileAddDialog(
 private fun FileRow(
     fileName: MutableState<TextFieldValue>,
     fileType: MutableState<TabulatedFile.Type>,
-    fileTypeCsvDelimiter: MutableState<TabulatedFile.TypeCsvDelimiter>
+    fileTypeCsvDelimiter: MutableState<CsvFile.Delimiter>
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically
@@ -164,10 +168,10 @@ private fun FileRow(
 
 @Composable
 private fun FileTypeCsv(
-    delimiter: MutableState<TabulatedFile.TypeCsvDelimiter>
+    delimiter: MutableState<CsvFile.Delimiter>
 ) {
     Spinner(
-        items = TabulatedFile.TypeCsvDelimiter.values().asList(),
+        items = CsvFile.Delimiter.values().asList(),
         itemTransform = { Text(it.uiName) },
         onItemSelected = { delimiter.value = it },
         modifier = Modifier.requiredWidth(224.dp)

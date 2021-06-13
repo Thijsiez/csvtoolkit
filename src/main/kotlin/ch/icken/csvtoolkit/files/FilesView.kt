@@ -1,5 +1,6 @@
 package ch.icken.csvtoolkit.files
 
+import androidx.compose.foundation.BoxWithTooltip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,12 +16,15 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.files.TabulatedFile.State
+import ch.icken.csvtoolkit.ui.Tooltip
 
 @Composable
 fun FilesView(
@@ -68,11 +72,29 @@ private fun FilesItemView(file: TabulatedFile) = Row(
         text = file.name,
         style = MaterialTheme.typography.body1
     )
-    if (file.isDataLoaded.value) {
-        Icon(
-            imageVector = Icons.Default.CheckCircle,
-            contentDescription = "Data is loaded",
-            tint = Color.Green
-        )
+    when (file.state.value) {
+        State.LOADED -> {
+            BoxWithTooltip(
+                tooltip = { Tooltip("Data is loaded") },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Data is loaded",
+                    tint = Color.Green
+                )
+            }
+        }
+        State.INVALID -> {
+            BoxWithTooltip(
+                tooltip = { Tooltip("File is invalid") }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "File is invalid",
+                    tint = Color.Red
+                )
+            }
+        }
+        else -> { /* Ignore */ }
     }
 }
