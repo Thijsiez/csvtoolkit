@@ -1,4 +1,4 @@
-package ch.icken.csvtoolkit.files
+package ch.icken.csvtoolkit.file
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 
@@ -6,7 +6,6 @@ class CsvFile(
     path: String,
     private val delimiter: Delimiter,
 ) : TabulatedFile(
-    type = Type.CSV,
     path = path,
     alias = null
 ) {
@@ -26,7 +25,7 @@ class CsvFile(
         }
     override val preview =
         reader.open(file) {
-            (0..13).mapNotNull { readNext() }
+            (0..10).mapNotNull { readNext() }
         }
 
     override fun loadData(): List<Map<String, String>> {

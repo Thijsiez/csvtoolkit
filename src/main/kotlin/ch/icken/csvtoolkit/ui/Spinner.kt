@@ -3,11 +3,14 @@ package ch.icken.csvtoolkit.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.ButtonColors
 import androidx.compose.material.ButtonDefaults
@@ -19,6 +22,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.ripple.rememberRipple
@@ -40,7 +44,8 @@ fun <T> Spinner(
     items: List<T>,
     itemTransform: @Composable (T) -> Unit,
     onItemSelected: ((T) -> Unit)?,
-    modifier: Modifier = Modifier,
+    label: String? = null,
+    modifier: Modifier = Modifier.requiredWidth(180.dp),
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     elevation: ButtonElevation? = ButtonDefaults.elevation(),
@@ -69,16 +74,27 @@ fun <T> Spinner(
         CompositionLocalProvider(LocalContentAlpha provides contentColor.alpha) {
             Row(
                 modifier = Modifier
-                    .defaultMinSize(112.dp, 48.dp)
+                    .defaultMinSize(124.dp, 48.dp)
                     .padding(contentPadding),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                content()
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (label != null) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.caption
+                        )
+                    }
+                    content()
+                }
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Open Dropdown"
+                    contentDescription = "Open Dropdown",
+                    modifier = Modifier.requiredSize(24.dp)
                 )
             }
         }

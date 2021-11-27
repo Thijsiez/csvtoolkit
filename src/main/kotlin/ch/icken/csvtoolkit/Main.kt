@@ -1,15 +1,22 @@
 package ch.icken.csvtoolkit
 
-import androidx.compose.desktop.DesktopMaterialTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Button
+import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.ExtendedFloatingActionButton
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -17,34 +24,33 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowSize
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import ch.icken.csvtoolkit.files.FileAddDialog
-import ch.icken.csvtoolkit.files.FilesView
-import ch.icken.csvtoolkit.mutation.Mutation
-import ch.icken.csvtoolkit.mutation.MutationView
+import ch.icken.csvtoolkit.file.FileAddDialog
+import ch.icken.csvtoolkit.file.FilesView
+import ch.icken.csvtoolkit.file.TabulatedFile
+import ch.icken.csvtoolkit.transform.Transform
+import ch.icken.csvtoolkit.transform.TransformView
+import ch.icken.csvtoolkit.ui.MapTable
 
-@OptIn(ExperimentalComposeUiApi::class)
 fun main() = application {
-    val instance = remember {
-        ToolkitInstance()
-    }
-    val mainWindowState = rememberWindowState(
-        size = WindowSize(1280.dp, 800.dp)
-    )
+    val instance = ToolkitInstance()
 
     Window(
-        state = mainWindowState,
+        onCloseRequest = ::exitApplication,
+        state = rememberWindowState(
+            position = WindowPosition(Alignment.Center),
+            size = DpSize(1280.dp, 800.dp)
+        ),
         title = "csvtoolkit",
-        resizable = false,
-        initialAlignment = Alignment.Center
+        resizable = false
     ) {
-        DesktopMaterialTheme {
+        MaterialTheme {
             MainView(instance)
         }
     }
@@ -53,36 +59,57 @@ fun main() = application {
 @Composable
 private fun MainView(instance: ToolkitInstance) = Row(
     modifier = Modifier.fillMaxSize()
+        .padding(8.dp),
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
 ) {
     var showAddFileDialog by remember { mutableStateOf(false) }
-    var showEditMutationDialogFor: Mutation? by remember { mutableStateOf(null) }
+    var showPreviewFileDialogFor: TabulatedFile? by remember { mutableStateOf(null) }
+    var showEditTransformDialogFor: Transform? by remember { mutableStateOf(null) }
     val allowDoingTheThing = remember { derivedStateOf {
-        instance.files.size >= 2 && instance.files.all { it.isValid } &&
-                instance.mutations.size >= 1 && instance.mutations.all { it.isValid(instance) }
+        instance.files.size >= 1 && instance.files.all { it.isValid } &&
+                instance.transforms.size >= 1 && instance.transforms.all { it.isValid(instance) }
     } }
 
     Column(
         modifier = Modifier.width(320.dp)
-            .fillMaxHeight()
+            .fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         FilesView(
             instance = instance,
-            onAddFile = { showAddFileDialog = true }
+            onAddFile = { showAddFileDialog = true },
+            onPreviewFile = { showPreviewFileDialogFor = it }
         )
-        MutationView(
+        TransformView(
             instance = instance,
-            onAddMutation = { instance.mutations.add(it) },
-            onEditMutation = { showEditMutationDialogFor = it }
+            onAddTransform = { instance.transforms.add(it) },
+            onEditTransform = { showEditTransformDialogFor = it }
         )
-        Spacer(Modifier.height(16.dp))
-        Button(
-            onClick = { instance.theThing() },
-            modifier = Modifier.align(Alignment.End),
-            enabled = allowDoingTheThing.value
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("DO THE THING")
+            if (allowDoingTheThing.value) {
+                ExtendedFloatingActionButton(
+                    text = { Text("DO THE THING") },
+                    onClick = { instance.theThing() },
+                    modifier = Modifier.align(Alignment.Center),
+                    icon = { Icon(Icons.Default.PlayArrow, null) }
+                )
+            }
+            if (instance.isDoingTheThing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(4.dp)
+                        .align(Alignment.CenterEnd)
+                )
+            }
         }
     }
+    Card {
+        instance.data?.let {
+            MapTable(it)
+        }
+    }
+
 
     if (showAddFileDialog) {
         FileAddDialog(
@@ -90,8 +117,11 @@ private fun MainView(instance: ToolkitInstance) = Row(
             onHide = { showAddFileDialog = false }
         )
     }
-    showEditMutationDialogFor?.Dialog(
+    showPreviewFileDialogFor?.Dialog(
+        onHide = { showPreviewFileDialogFor = null }
+    )
+    showEditTransformDialogFor?.Dialog(
         instance = instance,
-        onHide = { showEditMutationDialogFor = null }
+        onHide = { showEditTransformDialogFor = null }
     )
 }

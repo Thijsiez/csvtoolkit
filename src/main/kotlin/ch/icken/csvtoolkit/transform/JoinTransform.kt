@@ -1,12 +1,9 @@
-package ch.icken.csvtoolkit.mutation
+package ch.icken.csvtoolkit.transform
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -18,17 +15,21 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.WindowSize
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
-import ch.icken.csvtoolkit.files.TabulatedFile
-import ch.icken.csvtoolkit.ui.CheckButton
+import ch.icken.csvtoolkit.file.TabulatedFile
+import ch.icken.csvtoolkit.onEach
 import ch.icken.csvtoolkit.ui.Spinner
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
-class JoinMutation : Mutation(Type.JOIN) {
+class JoinTransform : Transform() {
     override val description get() = buildAnnotatedString {
-        append(if (innerJoin.value) "Inner join " else "Join ")
+        append(joinType.value.uiName)
+        append(" ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column.value ?: "?")
         }
@@ -43,7 +44,7 @@ class JoinMutation : Mutation(Type.JOIN) {
     }
 
     private val column: MutableState<String?> = mutableStateOf(null)
-    private val innerJoin: MutableState<Boolean> = mutableStateOf(false)
+    private val joinType: MutableState<JoinType> = mutableStateOf(JoinType.INNER)
     private val joinOnFile: MutableState<TabulatedFile?> = mutableStateOf(null)
     private val joinOnColumn: MutableState<String?> = mutableStateOf(null)
 
@@ -59,39 +60,73 @@ class JoinMutation : Mutation(Type.JOIN) {
         }
     }
 
-    override fun doTheActualThing(
+    override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
-    ): MutableList<MutableMap<String, String>> {
+    ): MutableList<MutableMap<String, String>> = coroutineScope {
         val columnName = column.value
         val joinOnFileValue = joinOnFile.value
         val joinOnColumnName = joinOnColumn.value
 
         if (columnName == null ||
             joinOnFileValue == null ||
-            joinOnColumnName == null) return intermediate
+            joinOnColumnName == null) return@coroutineScope intermediate
 
-        return intermediate.onEach { row ->
-            val matchValue = row[columnName]
-            val joinData = joinOnFileValue.letData { data ->
-                data.firstOrNull { it[joinOnColumnName] == matchValue }
+        val joinDataLookup = joinOnFileValue.letData { data ->
+            data.associate {
+                it[joinOnColumnName] to it.filterNot { (columnName, _) -> columnName == joinOnColumnName }
             }
-            val joinEmpty = joinOnFileValue.headers.associateWith { "" }
-            //TODO implement left/inner join option checkbox
-            row.putAll((joinData ?: joinEmpty).filterNot { (key, _) -> key == joinOnColumnName})
         }
+        val joinLeftEmpty = joinOnFileValue.headers.filterNot { it == joinOnColumnName }.associateWith { "" }
+        return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
+            async {
+                when (joinType.value) {
+                    JoinType.INNER -> {
+                        (chunk as MutableList).onEach { row, iterator ->
+                            val joinData = joinDataLookup?.get(row[columnName])
+                            if (joinData != null) row.putAll(joinData) else iterator.remove()
+                        }
+                    }
+                    JoinType.LEFT -> {
+                        chunk.onEach { row ->
+                            row.putAll(joinDataLookup?.get(row[columnName]) ?: joinLeftEmpty)
+                        }
+                    }
+                }
+            }
+        }.awaitAll().flatten() as MutableList<MutableMap<String, String>>
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
         val columnName = column.value
         val joinOnFileValue = joinOnFile.value
         val joinOnColumnName = joinOnColumn.value
-        return columnName != null &&
-                joinOnFileValue != null &&
-                joinOnColumnName != null &&
-                columnName in instance.headersUpTo(this) &&
-                joinOnFileValue in instance.files &&
-                joinOnColumnName in joinOnFileValue.headers &&
-                super.isValid(instance)
+
+        if (columnName == null) {
+            invalidMessage = "Missing left column"
+            return false
+        }
+        if (joinOnFileValue == null) {
+            invalidMessage = "Missing file to join on"
+            return false
+        }
+        if (joinOnColumnName == null) {
+            invalidMessage = "Missing right column"
+            return false
+        }
+        if (columnName !in instance.headersUpTo(this)) {
+            invalidMessage = "Left column not available"
+            return false
+        }
+        if (joinOnFileValue !in instance.files) {
+            invalidMessage = "File to join on not available"
+            return false
+        }
+        if (joinOnColumnName !in joinOnFileValue.headers) {
+            invalidMessage = "Right column not available"
+            return false
+        }
+
+        return super.isValid(instance)
     }
 
     @Composable
@@ -99,53 +134,55 @@ class JoinMutation : Mutation(Type.JOIN) {
         instance: ToolkitInstance,
         onHide: () -> Unit
     ) {
-        val dialogState = rememberDialogState(
-            size = WindowSize(480.dp, 240.dp)
-        )
-
-        MutationEditDialog(
+        TransformEditDialog(
             titleText = "Join",
             onHide = onHide,
-            state = dialogState
+            state = rememberDialogState(
+                size = DpSize(480.dp, 270.dp)
+            )
         ) {
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Spinner(
-                        items = instance.headersUpTo(this@JoinMutation),
+                        items = instance.headersUpTo(this@JoinTransform),
                         itemTransform = { Text(it) },
                         onItemSelected = { column.value = it },
-                        modifier = Modifier.requiredWidth(180.dp)
+                        label = "Reference Column"
                     ) {
                         Text(column.value ?: "-")
                     }
-                    Spacer(Modifier.height(8.dp))
-                    CheckButton(
-                        checked = innerJoin.value,
-                        onCheckedChange = { innerJoin.value = it }
+                    Spinner(
+                        items = JoinType.values().toList(),
+                        itemTransform = { Text(it.uiName) },
+                        onItemSelected = { joinType.value = it },
+                        label = "Join Type"
                     ) {
-                        Text("Inner Join")
+                        Text(joinType.value.uiName)
                     }
                 }
                 Text("ON")
-                Column {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Spinner(
                         items = instance.files,
                         itemTransform = { Text(it.name) },
                         onItemSelected = { joinOnFile.value = it },
-                        modifier = Modifier.requiredWidth(180.dp)
+                        label = "Join File"
                     ) {
                         Text(joinOnFile.value?.name ?: "-")
                     }
-                    Spacer(Modifier.height(8.dp))
                     Spinner(
                         items = joinOnFile.value?.headers ?: emptyList(),
                         itemTransform = { Text(it) },
                         onItemSelected = { joinOnColumn.value = it },
-                        modifier = Modifier.requiredWidth(180.dp),
+                        label = "Join Column",
                         enabled = joinOnFile.value != null
                     ) {
                         Text(joinOnColumn.value ?: "-")
@@ -153,5 +190,12 @@ class JoinMutation : Mutation(Type.JOIN) {
                 }
             }
         }
+    }
+
+    private enum class JoinType(
+        val uiName: String
+    ) {
+        INNER("Inner Join"),
+        LEFT("Left Join")
     }
 }

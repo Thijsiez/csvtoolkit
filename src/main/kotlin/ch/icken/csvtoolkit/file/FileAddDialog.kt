@@ -1,38 +1,30 @@
-package ch.icken.csvtoolkit.files
+package ch.icken.csvtoolkit.file
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.GridCells
-import androidx.compose.foundation.lazy.LazyVerticalGrid
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.Divider
+import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.WindowSize
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ui.DialogContent
+import ch.icken.csvtoolkit.ui.ListTable
 import ch.icken.csvtoolkit.ui.Spinner
 import java.awt.datatransfer.DataFlavor
 import java.awt.dnd.DnDConstants
@@ -40,16 +32,12 @@ import java.awt.dnd.DropTarget
 import java.awt.dnd.DropTargetDropEvent
 import java.io.File
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun FileAddDialog(
     onAddFile: (TabulatedFile) -> Unit,
     onHide: () -> Unit,
     titleText: String = "Add File"
 ) {
-    val dialogState = rememberDialogState(
-        size = WindowSize(960.dp, 640.dp)
-    )
     val fileName = remember { mutableStateOf(TextFieldValue("")) }
     val fileType = remember { mutableStateOf(TabulatedFile.Type.CSV) }
     val fileTypeCsvDelimiter = remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
@@ -62,16 +50,16 @@ fun FileAddDialog(
                 path = fileName.value.text,
                 delimiter = fileTypeCsvDelimiter.value
             )
-            else -> TODO("Implement other types")
         }
     } }
 
     Dialog(
-        state = dialogState,
+        state = rememberDialogState(
+            size = DpSize(960.dp, 640.dp)
+        ),
         title = titleText,
         undecorated = true,
         resizable = false,
-        initialAlignment = Alignment.Center,
         onCloseRequest = onHide
     ) {
         DialogContent(
@@ -94,24 +82,25 @@ fun FileAddDialog(
                     Text("DISCARD")
                 }
             },
-            modifier = Modifier.border(1.dp, MaterialTheme.colors.primary)
+            modifier = Modifier.border(Dp.Hairline, MaterialTheme.colors.primary)
         ) {
-            Column {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 FileRow(
                     fileName = fileName,
                     fileType = fileType,
                     fileTypeCsvDelimiter = fileTypeCsvDelimiter
                 )
-                Divider(Modifier.padding(vertical = 4.dp))
                 if (fileIsValid.value) {
-                    FilePreview(
-                        file = file
-                    )
+                    Card {
+                        ListTable(file.value.preview)
+                    }
                 }
             }
         }
 
-        dialog.contentPane.dropTarget = object : DropTarget() {
+        window.contentPane.dropTarget = object : DropTarget() {
             @Synchronized
             override fun drop(dtde: DropTargetDropEvent) {
                 dtde.acceptDrop(DnDConstants.ACTION_REFERENCE)
@@ -135,6 +124,7 @@ private fun FileRow(
     fileTypeCsvDelimiter: MutableState<CsvFile.Delimiter>
 ) {
     Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         OutlinedTextField(
@@ -144,23 +134,17 @@ private fun FileRow(
             label = { Text("File Location") },
             singleLine = true
         )
-        Spacer(Modifier.width(8.dp))
         Spinner(
             items = TabulatedFile.Type.values().asList(),
             itemTransform = { Text(it.uiName) },
             onItemSelected = { fileType.value = it },
-            modifier = Modifier.requiredWidth(168.dp)
+            label = "File Type"
         ) {
-            Text("Type: ${fileType.value.uiName}")
+            Text(fileType.value.uiName)
         }
-        Spacer(Modifier.width(16.dp))
         when (fileType.value) {
             TabulatedFile.Type.CSV -> FileTypeCsv(
                 delimiter = fileTypeCsvDelimiter
-            )
-            else -> Text(
-                text = "No settings for this file type",
-                color = Color(0f, 0f, 0f, .6f)
             )
         }
     }
@@ -174,28 +158,8 @@ private fun FileTypeCsv(
         items = CsvFile.Delimiter.values().asList(),
         itemTransform = { Text(it.uiName) },
         onItemSelected = { delimiter.value = it },
-        modifier = Modifier.requiredWidth(224.dp)
+        label = "Delimiter"
     ) {
-        Text("Delimiter: ${delimiter.value.uiName}")
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun FilePreview(
-    file: State<TabulatedFile>
-) {
-    val numberOfColumns = file.value.preview.firstOrNull()?.size ?: 1
-    LazyVerticalGrid(
-        cells = GridCells.Fixed(numberOfColumns)
-    ) {
-        itemsIndexed(file.value.preview.flatten()) { index, item ->
-            Text(
-                text = item,
-                modifier = Modifier.padding(vertical = 4.dp),
-                fontWeight = if (index < numberOfColumns) FontWeight.Bold else FontWeight.Normal,
-                maxLines = 1
-            )
-        }
+        Text(delimiter.value.uiName)
     }
 }

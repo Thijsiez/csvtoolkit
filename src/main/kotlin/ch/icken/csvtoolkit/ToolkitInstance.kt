@@ -1,8 +1,12 @@
 package ch.icken.csvtoolkit
 
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import ch.icken.csvtoolkit.files.TabulatedFile
-import ch.icken.csvtoolkit.mutation.Mutation
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import ch.icken.csvtoolkit.file.TabulatedFile
+import ch.icken.csvtoolkit.transform.Transform
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,21 +22,33 @@ class ToolkitInstance : CoroutineScope {
         }
 
     val files = mutableStateListOf<TabulatedFile>()
-    val mutations = mutableStateListOf<Mutation>()
+    val transforms = mutableStateListOf<Transform>()
+    var data: List<Map<String, String>>? by mutableStateOf(null); private set
 
-    fun headersUpTo(thisMutation: Mutation, inclusive: Boolean = false): List<String> {
-        return mutations
-            .subList(0, mutations.indexOf(thisMutation) + if (inclusive) 1 else 0)
-            .fold(files.first().headers.toMutableList()) { intermediateHeaders, mutation ->
-                mutation.doTheHeaderThing(intermediateHeaders)
+    var baseFileOverride: TabulatedFile? by mutableStateOf(null)
+    val baseFile = derivedStateOf { baseFileOverride ?: files.firstOrNull() ?: throw NoSuchElementException() }
+
+    var isDoingTheThing: Boolean by mutableStateOf(false); private set
+    var currentlyProcessingTransform: Transform? by mutableStateOf(null); private set
+
+    fun headersUpTo(thisTransform: Transform, inclusive: Boolean = false): List<String> {
+        return transforms
+            .subList(0, transforms.indexOf(thisTransform) + if (inclusive) 1 else 0)
+            .fold(baseFile.value.headers.toMutableList()) { intermediateHeaders, transform ->
+                transform.doTheHeaderThing(intermediateHeaders)
             }
     }
 
     fun theThing() = launch {
-        println(files.first().letData { data ->
-            mutations.fold(data.map { it.toMutableMap() }.toMutableList()) { intermediateData, mutation ->
-                mutation.doTheActualThing(intermediateData)
+        isDoingTheThing = true
+        val finalData = baseFile.value.letData { data ->
+            fold(transforms, data.map { it.toMutableMap() }.toMutableList()) { intermediateData, transform ->
+                currentlyProcessingTransform = transform
+                transform.doTheActualThing(intermediateData)
             }
-        })
+        }
+        currentlyProcessingTransform = null
+        isDoingTheThing = false
+        launch(Dispatchers.Main) { data = finalData }
     }
 }
