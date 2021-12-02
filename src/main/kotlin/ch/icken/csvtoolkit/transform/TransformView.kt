@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,7 +40,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
+import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Tooltip
+import org.burnoutcrew.reorderable.ReorderableState
 import org.burnoutcrew.reorderable.detectReorderAfterLongPress
 import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
@@ -48,7 +53,8 @@ import org.burnoutcrew.reorderable.reorderable
 fun TransformView(
     instance: ToolkitInstance,
     onAddTransform: (Transform) -> Unit,
-    onEditTransform: (Transform) -> Unit
+    onEditTransform: (Transform) -> Unit,
+    onEditCondition: (Condition) -> Unit
 ) = Card {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -67,30 +73,47 @@ fun TransformView(
                 text = "Transforms",
                 style = MaterialTheme.typography.h6
             )
-            Box {
-                IconButton(
-                    onClick = { expanded = true },
-                    enabled = instance.files.isNotEmpty()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Transform"
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    Transform.Type.values().forEach {
-                        DropdownMenuItem(
-                            onClick = {
-                                val transform = Transform.create(it)
-                                onAddTransform(transform)
-                                onEditTransform(transform)
-                                expanded = false
-                            }
+            Row {
+                when {
+                    instance.isDoingTheThing -> {
+                        CircularProgressIndicator(Modifier.padding(4.dp))
+                    }
+                    instance.allowDoingTheThing.value -> {
+                        IconButton(
+                            onClick = { instance.theThing() }
                         ) {
-                            Text(it.uiName)
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Do the thing"
+                            )
+                        }
+                    }
+                }
+                Box {
+                    IconButton(
+                        onClick = { expanded = true },
+                        enabled = instance.files.isNotEmpty()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Transform"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        Transform.Type.values().forEach {
+                            DropdownMenuItem(
+                                onClick = {
+                                    val transform = it.create(null)
+                                    onAddTransform(transform)
+                                    onEditTransform(transform)
+                                    expanded = false
+                                }
+                            ) {
+                                Text(it.uiName)
+                            }
                         }
                     }
                 }
@@ -110,33 +133,59 @@ fun TransformView(
                 TransformItemView(
                     instance = instance,
                     transform = it,
-                    onEditTransform = { onEditTransform(it) },
-                    modifier = Modifier
-                        .composed {
-                            //Drag effect based off draggedItem()
-                            Modifier.zIndex(1f)
-                                .graphicsLayer {
-                                    translationY = reorderState.offsetByKey(it) ?: 0f
-                                }
-                        }
-                        .detectReorderAfterLongPress(reorderState)
+                    onEditTransform = onEditTransform,
+                    onEditCondition = onEditCondition,
+                    modifier = reorderableItemModifier(reorderState, it)
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TransformItemView(
+fun TransformItemView(
     instance: ToolkitInstance,
     transform: Transform,
-    onEditTransform: () -> Unit,
-    modifier: Modifier = Modifier
+    onEditTransform: (Transform) -> Unit,
+    onEditCondition: (Condition) -> Unit = {},
+    modifier: Modifier = Modifier,
+    stateContent: @Composable RowScope.() -> Unit = {
+        DefaultTransformStateContent(
+            instance = instance,
+            transform = transform
+        )
+    }
+) {
+    if (transform is TransformCustomItemView) {
+        transform.CustomItemView(
+            instance = instance,
+            onEditTransform = onEditTransform,
+            onEditCondition = onEditCondition,
+            modifier = modifier
+        )
+    } else {
+        TransformDefaultItemView(
+            instance = instance,
+            transform = transform,
+            onEditTransform = onEditTransform,
+            modifier = modifier,
+            stateContent = stateContent
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TransformDefaultItemView(
+    instance: ToolkitInstance,
+    transform: Transform,
+    onEditTransform: (Transform) -> Unit,
+    modifier: Modifier,
+    stateContent: @Composable RowScope.() -> Unit
 ) = Row(
     modifier = modifier
         .combinedClickable(
-            onClick = onEditTransform
+            onClick = { onEditTransform(transform) }
         )
         .fillMaxWidth()
         .height(48.dp)
@@ -155,32 +204,89 @@ private fun TransformItemView(
         Row(
             modifier = Modifier.requiredSize(48.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            when {
-                transform.isValid(instance) -> {
-                    TooltipArea(
-                        tooltip = { Tooltip("Transform is valid") }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Transform is valid",
-                            tint = Color.Green
-                        )
-                    }
-                }
-                else -> {
-                    TooltipArea(
-                        tooltip = { Tooltip(transform.invalidMessage) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = "Transform is invalid",
-                            tint = Color.Red
-                        )
-                    }
-                }
-            }
-        }
+            verticalAlignment = Alignment.CenterVertically,
+            content = stateContent
+        )
     }
 }
+
+@Composable
+fun DefaultTransformStateContent(
+    instance: ToolkitInstance,
+    transform: Transform
+) {
+    when {
+        transform.isValid(instance) -> TransformValidIcon()
+        else -> TransformInvalidIcon(transform.invalidMessage)
+    }
+}
+@Composable
+fun DefaultConditionalTransformStateContent(
+    instance: ToolkitInstance,
+    transform: ConditionalTransform
+) {
+    when {
+        transform.parent == null -> TransformInvalidIcon("Transform is malformed")
+        transform.isValidConditional(transform.parent.getContext(instance)) -> TransformValidIcon()
+        else -> TransformInvalidIcon(transform.invalidMessage)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TransformValidIcon() {
+    TooltipArea(
+        tooltip = { Tooltip("Transform is valid") }
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = "Transform is valid",
+            tint = Color.Green
+        )
+    }
+}
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TransformWarningIcon(message: String) {
+    TooltipArea(
+        tooltip = { Tooltip(message) }
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = "Transform has a warning",
+            tint = Color.Yellow
+        )
+    }
+}
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TransformInvalidIcon(message: String) {
+    TooltipArea(
+        tooltip = { Tooltip(message) }
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = "Transform is invalid",
+            tint = Color.Red
+        )
+    }
+}
+
+interface TransformCustomItemView {
+    @Composable
+    fun CustomItemView(
+        instance: ToolkitInstance,
+        onEditTransform: (Transform) -> Unit,
+        onEditCondition: (Condition) -> Unit,
+        modifier: Modifier
+    )
+}
+
+fun reorderableItemModifier(state: ReorderableState, key: Any) = Modifier
+    .composed {
+        Modifier.zIndex(1f)
+            .graphicsLayer {
+                translationY = state.offsetByKey(key) ?: 0f
+            }
+    }
+    .detectReorderAfterLongPress(state)

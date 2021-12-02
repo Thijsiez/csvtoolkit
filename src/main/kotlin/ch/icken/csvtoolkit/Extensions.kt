@@ -8,14 +8,12 @@ fun <E> List<E>.firstDuplicateOrNull(): E? {
     return null
 }
 
-//fold, but as a suspending function
-suspend fun <T, R> fold(iterable: Iterable<T>, initial: R, operation: suspend (R, T) -> R): R {
+suspend fun <T, R> Iterable<T>.foldSuspendable(initial: R, operation: suspend (R, T) -> R): R {
     var accumulator = initial
-    for (element in iterable) accumulator = operation(accumulator, element)
+    for (element in this) accumulator = operation(accumulator, element)
     return accumulator
 }
 
-//onEach, but allows for removal of element while iterating
 inline fun <T, C : MutableIterable<T>> C.onEach(action: (T, MutableIterator<T>) -> Unit): C {
     val iterator = this.iterator()
     return apply { while (iterator.hasNext()) action(iterator.next(), iterator) }

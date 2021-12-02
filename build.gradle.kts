@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.5.31"
-    id("org.jetbrains.compose") version "1.0.0-rc5"
+    id("org.jetbrains.compose") version "1.0.0-rc12"
 }
 
 repositories {
@@ -16,6 +16,7 @@ repositories {
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.materialIconsExtended)
+    implementation("org.slf4j:slf4j-simple:1.7.32")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.2.0")
     implementation("org.burnoutcrew.composereorderable:reorderable:0.7.4")
 }

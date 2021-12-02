@@ -18,7 +18,8 @@ fun Tooltip(text: String) {
     ) {
         Text(
             text = text,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(8.dp),
+            style = MaterialTheme.typography.caption
         )
     }
 }

@@ -44,7 +44,7 @@ class JoinTransform : Transform() {
     }
 
     private val column: MutableState<String?> = mutableStateOf(null)
-    private val joinType: MutableState<JoinType> = mutableStateOf(JoinType.INNER)
+    private val joinType: MutableState<Type> = mutableStateOf(Type.INNER)
     private val joinOnFile: MutableState<TabulatedFile?> = mutableStateOf(null)
     private val joinOnColumn: MutableState<String?> = mutableStateOf(null)
 
@@ -80,13 +80,13 @@ class JoinTransform : Transform() {
         return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
             async {
                 when (joinType.value) {
-                    JoinType.INNER -> {
+                    Type.INNER -> {
                         (chunk as MutableList).onEach { row, iterator ->
                             val joinData = joinDataLookup?.get(row[columnName])
                             if (joinData != null) row.putAll(joinData) else iterator.remove()
                         }
                     }
-                    JoinType.LEFT -> {
+                    Type.LEFT -> {
                         chunk.onEach { row ->
                             row.putAll(joinDataLookup?.get(row[columnName]) ?: joinLeftEmpty)
                         }
@@ -158,7 +158,7 @@ class JoinTransform : Transform() {
                         Text(column.value ?: "-")
                     }
                     Spinner(
-                        items = JoinType.values().toList(),
+                        items = Type.values().toList(),
                         itemTransform = { Text(it.uiName) },
                         onItemSelected = { joinType.value = it },
                         label = "Join Type"
@@ -192,7 +192,7 @@ class JoinTransform : Transform() {
         }
     }
 
-    private enum class JoinType(
+    private enum class Type(
         val uiName: String
     ) {
         INNER("Inner Join"),

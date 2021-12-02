@@ -28,6 +28,9 @@ class ToolkitInstance : CoroutineScope {
     var baseFileOverride: TabulatedFile? by mutableStateOf(null)
     val baseFile = derivedStateOf { baseFileOverride ?: files.firstOrNull() ?: throw NoSuchElementException() }
 
+    val allowDoingTheThing = derivedStateOf {
+        files.size >= 1 && files.all { it.isValid } && transforms.size >= 1 && transforms.all { it.isValid(this) }
+    }
     var isDoingTheThing: Boolean by mutableStateOf(false); private set
     var currentlyProcessingTransform: Transform? by mutableStateOf(null); private set
 
@@ -42,7 +45,7 @@ class ToolkitInstance : CoroutineScope {
     fun theThing() = launch {
         isDoingTheThing = true
         val finalData = baseFile.value.letData { data ->
-            fold(transforms, data.map { it.toMutableMap() }.toMutableList()) { intermediateData, transform ->
+            transforms.foldSuspendable(data.map { it.toMutableMap() }.toMutableList()) { intermediateData, transform ->
                 currentlyProcessingTransform = transform
                 transform.doTheActualThing(intermediateData)
             }

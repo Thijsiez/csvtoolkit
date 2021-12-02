@@ -12,10 +12,6 @@ abstract class Transform {
     companion object {
         private val NumberOfLogicalCores = Runtime.getRuntime().availableProcessors()
         fun chunkSize(listSize: Int) = (listSize + NumberOfLogicalCores - 1) / NumberOfLogicalCores
-        fun create(type: Type) = when (type) {
-            Type.JOIN -> JoinTransform()
-            Type.MERGE -> MergeTransform()
-        }
     }
 
     abstract val description: AnnotatedString
@@ -27,24 +23,46 @@ abstract class Transform {
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>>
 
-    @Composable
-    abstract fun Dialog(
-        instance: ToolkitInstance,
-        onHide: () -> Unit
-    )
-
     open fun isValid(instance: ToolkitInstance): Boolean {
         if (instance.headersUpTo(this, true).firstDuplicateOrNull() != null) {
+            //TODO attempt to fix header collision by renaming columns
             invalidMessage = "Header collision"
             return false
         }
         return true
     }
 
+    @Composable
+    abstract fun Dialog(
+        instance: ToolkitInstance,
+        onHide: () -> Unit
+    )
+
+    fun getContext(instance: ToolkitInstance): ConditionalTransform.Context {
+        return ConditionalTransform.Context(
+            headers = instance.headersUpTo(this)
+        )
+    }
+
+    abstract class ConditionalTransform(val parent: Transform?) : Transform() {
+        abstract fun doTheConditionalHeaderThing(intermediate: MutableList<String>): MutableList<String>
+        abstract fun doTheConditionalThing(intermediateRow: MutableMap<String, String>): MutableMap<String, String>
+        abstract fun isValidConditional(context: Context): Boolean
+        @Composable abstract fun ConditionalDialog(context: Context, onHide: () -> Unit)
+
+        data class Context(
+            val headers: List<String>
+        )
+    }
+
     enum class Type(
-        val uiName: String
+        val uiName: String,
+        val create: (parent: Transform?) -> Transform,
+        val isConditional: Boolean
     ) {
-        JOIN("Join"),
-        MERGE("Merge")
+        JOIN("Join", { JoinTransform() }, false),
+        MERGE("Merge", { MergeTransform() }, false),
+        CONDITIONAL("Conditional", { ConditionalTransformSet() }, false),
+        SET("Set", { SetTransform(it) }, true)
     }
 }

@@ -54,7 +54,7 @@ class MergeTransform : Transform() {
         append("'s columns")
     }
 
-    private val mergeType: MutableState<MergeType> = mutableStateOf(MergeType.RANDOM)
+    private val mergeType: MutableState<Type> = mutableStateOf(Type.RANDOM)
     private val mergeWithFile: MutableState<TabulatedFile?> = mutableStateOf(null)
     private val mergeColumns = mutableStateListOf<Pair<String, Boolean>>()
 
@@ -69,9 +69,7 @@ class MergeTransform : Transform() {
     override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
-        val mergeWithFileValue = mergeWithFile.value ?: return@coroutineScope intermediate
-
-        val mergeData = mergeWithFileValue.letData { data ->
+        val mergeData = mergeWithFile.value?.letData { data ->
             val keepColumns = mergeColumns.filter { (_, merge) -> merge }.map { (columnName, _) -> columnName }
             data.mapTo(ArrayList(max(data.size, intermediate.size))) {
                 it.filter { (columnName, _) -> columnName in keepColumns }
@@ -81,9 +79,10 @@ class MergeTransform : Transform() {
                     repeat(intermediate.size / size - 1) { addAll(initialSizeData) }
                     addAll(initialSizeData.subList(0, intermediate.size % size))
                 }
-                if (mergeType.value == MergeType.RANDOM) shuffle()
+                if (mergeType.value == Type.RANDOM) shuffle()
             }
         } ?: return@coroutineScope intermediate
+        //TODO use coroutines
         return@coroutineScope intermediate.onEachIndexed { index, row ->
             row.putAll(mergeData[index])
         }
@@ -133,7 +132,7 @@ class MergeTransform : Transform() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Spinner(
-                        items = MergeType.values().toList(),
+                        items = Type.values().toList(),
                         itemTransform = { Text(it.uiName) },
                         onItemSelected = { mergeType.value = it },
                         label = "Merge Type"
@@ -169,7 +168,8 @@ class MergeTransform : Transform() {
                     ) {
                         itemsIndexed(mergeColumns) { index, (columnName, checked) ->
                             Row(
-                                modifier = Modifier.height(40.dp),
+                                modifier = Modifier.fillMaxWidth()
+                                    .height(40.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Checkbox(
@@ -178,7 +178,10 @@ class MergeTransform : Transform() {
                                         mergeColumns.set(index) { it.copy(second = isChecked) }
                                     }
                                 )
-                                Text(columnName)
+                                Text(
+                                    text = columnName,
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
                     }
@@ -191,7 +194,7 @@ class MergeTransform : Transform() {
         }
     }
 
-    private enum class MergeType(
+    private enum class Type(
         val uiName: String
     ) {
         REGULAR("Merge"),
