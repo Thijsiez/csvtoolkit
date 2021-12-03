@@ -2,7 +2,7 @@ package ch.icken.csvtoolkit.transform
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
@@ -17,6 +17,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
@@ -117,11 +118,11 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
             titleText = "Set",
             onHide = onHide,
             state = rememberDialogState(
-                size = DpSize(640.dp, 210.dp)
+                size = DpSize(480.dp, Dp.Unspecified)
             )
         ) {
             Row(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -139,7 +140,7 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
                     value = setValue.value,
                     onValueChange = { setValue.value = it },
                     modifier = Modifier.padding(bottom = 8.dp),
-                    label = { Text("Comparison Value") },
+                    label = { Text("Value") },
                     singleLine = true
                 )
             }

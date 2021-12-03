@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,6 +32,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
@@ -206,11 +206,12 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
             titleText = "Conditional",
             onHide = onHide,
             state = rememberDialogState(
-                size = DpSize(720.dp, 480.dp)
+                size = DpSize(720.dp, Dp.Unspecified)
             )
         ) {
             Row(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth()
+                    .height(320.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(

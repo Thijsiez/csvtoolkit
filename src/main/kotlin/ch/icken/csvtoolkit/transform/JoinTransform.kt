@@ -3,7 +3,8 @@ package ch.icken.csvtoolkit.transform
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.Checkbox
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -15,11 +16,13 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.file.TabulatedFile
+import ch.icken.csvtoolkit.lowercaseIf
 import ch.icken.csvtoolkit.onEach
 import ch.icken.csvtoolkit.ui.Spinner
 import kotlinx.coroutines.async
@@ -47,6 +50,7 @@ class JoinTransform : Transform() {
     private val joinType: MutableState<Type> = mutableStateOf(Type.INNER)
     private val joinOnFile: MutableState<TabulatedFile?> = mutableStateOf(null)
     private val joinOnColumn: MutableState<String?> = mutableStateOf(null)
+    private val caseInsensitive: MutableState<Boolean> = mutableStateOf(false)
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
         val joinOnFileValue = joinOnFile.value
@@ -73,7 +77,8 @@ class JoinTransform : Transform() {
 
         val joinDataLookup = joinOnFileValue.letData { data ->
             data.associate {
-                it[joinOnColumnName] to it.filterNot { (columnName, _) -> columnName == joinOnColumnName }
+                val key = it[joinOnColumnName]?.lowercaseIf { caseInsensitive.value }
+                key to it.filterNot { (columnName, _) -> columnName == joinOnColumnName }
             }
         }
         val joinLeftEmpty = joinOnFileValue.headers.filterNot { it == joinOnColumnName }.associateWith { "" }
@@ -82,7 +87,7 @@ class JoinTransform : Transform() {
                 when (joinType.value) {
                     Type.INNER -> {
                         (chunk as MutableList).onEach { row, iterator ->
-                            val joinData = joinDataLookup?.get(row[columnName])
+                            val joinData = joinDataLookup?.get(row[columnName]?.lowercaseIf { caseInsensitive.value })
                             if (joinData != null) row.putAll(joinData) else iterator.remove()
                         }
                     }
@@ -138,55 +143,71 @@ class JoinTransform : Transform() {
             titleText = "Join",
             onHide = onHide,
             state = rememberDialogState(
-                size = DpSize(480.dp, 270.dp)
+                size = DpSize(480.dp, Dp.Unspecified)
             )
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spinner(
-                        items = instance.headersUpTo(this@JoinTransform),
-                        itemTransform = { Text(it) },
-                        onItemSelected = { column.value = it },
-                        label = "Reference Column"
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(column.value ?: "-")
+                        Spinner(
+                            items = instance.headersUpTo(this@JoinTransform),
+                            itemTransform = { Text(it) },
+                            onItemSelected = { column.value = it },
+                            label = "Reference Column"
+                        ) {
+                            Text(column.value ?: "-")
+                        }
+                        Spinner(
+                            items = Type.values().toList(),
+                            itemTransform = { Text(it.uiName) },
+                            onItemSelected = { joinType.value = it },
+                            label = "Join Type"
+                        ) {
+                            Text(joinType.value.uiName)
+                        }
                     }
-                    Spinner(
-                        items = Type.values().toList(),
-                        itemTransform = { Text(it.uiName) },
-                        onItemSelected = { joinType.value = it },
-                        label = "Join Type"
+                    Text("ON")
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(joinType.value.uiName)
+                        Spinner(
+                            items = instance.files,
+                            itemTransform = { Text(it.name) },
+                            onItemSelected = { joinOnFile.value = it },
+                            label = "Join File"
+                        ) {
+                            Text(joinOnFile.value?.name ?: "-")
+                        }
+                        Spinner(
+                            items = joinOnFile.value?.headers ?: emptyList(),
+                            itemTransform = { Text(it) },
+                            onItemSelected = { joinOnColumn.value = it },
+                            label = "Join Column",
+                            enabled = joinOnFile.value != null
+                        ) {
+                            Text(joinOnColumn.value ?: "-")
+                        }
                     }
                 }
-                Text("ON")
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spinner(
-                        items = instance.files,
-                        itemTransform = { Text(it.name) },
-                        onItemSelected = { joinOnFile.value = it },
-                        label = "Join File"
-                    ) {
-                        Text(joinOnFile.value?.name ?: "-")
-                    }
-                    Spinner(
-                        items = joinOnFile.value?.headers ?: emptyList(),
-                        itemTransform = { Text(it) },
-                        onItemSelected = { joinOnColumn.value = it },
-                        label = "Join Column",
-                        enabled = joinOnFile.value != null
-                    ) {
-                        Text(joinOnColumn.value ?: "-")
-                    }
+                    Checkbox(
+                        checked = caseInsensitive.value,
+                        onCheckedChange = { isChecked ->
+                            caseInsensitive.value = isChecked
+                        }
+                    )
+                    Text("Case Insensitive")
                 }
             }
         }

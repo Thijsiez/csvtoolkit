@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Card
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,13 +82,28 @@ private fun MainView(instance: ToolkitInstance) = Row(
             onEditCondition = { showEditConditionDialogFor = it }
         )
     }
-    Box {
-        Card {
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Card(
+            modifier = Modifier.fillMaxSize()
+        ) {
             instance.data?.let {
                 MapTable(it)
             }
         }
-        //TODO add save button
+        if (instance.data != null) {
+            FloatingActionButton(
+                onClick = { /* TODO save file dialog */ },
+                modifier = Modifier.padding(16.dp)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = "Save output"
+                )
+            }
+        }
     }
 
 
@@ -98,13 +117,11 @@ private fun MainView(instance: ToolkitInstance) = Row(
         onHide = { showPreviewFileDialogFor = null }
     )
     showEditTransformDialogFor?.let { transform ->
-        if (transform is ConditionalTransform) {
-            if (transform.parent != null) {
-                transform.ConditionalDialog(
-                    context = transform.parent.getContext(instance),
-                    onHide = { showEditTransformDialogFor = null }
-                )
-            }
+        if (transform is ConditionalTransform && transform.parent != null) {
+            transform.ConditionalDialog(
+                context = transform.parent.getContext(instance),
+                onHide = { showEditTransformDialogFor = null }
+            )
         } else {
             transform.Dialog(
                 instance = instance,

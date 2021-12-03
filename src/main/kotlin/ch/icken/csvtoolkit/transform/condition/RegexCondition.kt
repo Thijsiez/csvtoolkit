@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
@@ -24,54 +23,41 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.transform.Transform
-import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
+import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform.Context
 import ch.icken.csvtoolkit.transform.TransformEditDialog
 import ch.icken.csvtoolkit.ui.Spinner
 
-class NumericalCondition(parent: Transform) : Condition(parent) {
+class RegexCondition(parent: Transform) : Condition(parent) {
     override val description: AnnotatedString get() = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column.value ?: "?")
         }
-        append(" is ")
-        withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
-            append(compareType.value.uiName.lowercase())
-        }
-        append(" ")
+        append(" matches ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(compareTo.value.text)
         }
     }
 
     private val column: MutableState<String?> = mutableStateOf(null)
-    private val compareType: MutableState<Type> = mutableStateOf(Type.EQ)
     private val compareTo: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue(""))
-    private val compareDouble = derivedStateOf { compareTo.value.text.toDoubleOrNull() ?: Double.NaN }
-    private val valueInvalidCharacters = Regex("[^0-9.]")
+    private val compareRegex = derivedStateOf { Regex(compareTo.value.text) }
 
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column.value ?: return false
-        val referenceDouble = row[columnName]?.toDoubleOrNull() ?: return false
-        return when(compareType.value) {
-            Type.EQ -> referenceDouble == compareDouble.value
-            Type.NEQ -> referenceDouble != compareDouble.value
-            Type.LT -> referenceDouble < compareDouble.value
-            Type.GT -> referenceDouble > compareDouble.value
-            Type.LTE -> referenceDouble <= compareDouble.value
-            Type.GTE -> referenceDouble >= compareDouble.value
-        }
+        val referenceValue = row[columnName] ?: return false
+        return referenceValue.matches(compareRegex.value)
     }
 
     @Composable
     override fun Dialog(
-        context: ConditionalTransform.Context,
+        context: Context,
         onHide: () -> Unit
     ) {
         TransformEditDialog(
-            titleText = "Numerical Condition",
+            titleText = "RegEx Condition",
             onHide = onHide,
             state = rememberDialogState(
-                size = DpSize(640.dp, Dp.Unspecified)
+                size = DpSize(480.dp, Dp.Unspecified)
             )
         ) {
             Row(
@@ -87,39 +73,16 @@ class NumericalCondition(parent: Transform) : Condition(parent) {
                 ) {
                     Text(column.value ?: "-")
                 }
-                Text("is")
-                Spinner(
-                    items = Type.values().toList(),
-                    itemTransform = { Text(it.uiName) },
-                    onItemSelected = { compareType.value = it },
-                    label = "Comparison Type"
-                ) {
-                    Text(compareType.value.uiName)
-                }
+                Text("matches")
                 OutlinedTextField(
                     value = compareTo.value,
-                    onValueChange = {
-                        compareTo.value = it.copy(
-                            text = it.text.replace(valueInvalidCharacters, "")
-                        )
-                    },
+                    onValueChange = { compareTo.value = it },
                     modifier = Modifier.padding(bottom = 8.dp),
-                    label = { Text("Number") },
-                    placeholder = { Text("3.14") },
+                    label = { Text("RegEx") },
+                    placeholder = { Text("[0-9a-f]{36}") },
                     singleLine = true
                 )
             }
         }
-    }
-
-    private enum class Type(
-        val uiName: String
-    ) {
-        EQ("Equal to"),
-        NEQ("Not equal to"),
-        LT("Less than"),
-        GT("Greater than"),
-        LTE("Less than or equals"),
-        GTE("Greater than or equals")
     }
 }

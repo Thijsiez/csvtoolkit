@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredWidth
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
@@ -36,6 +36,8 @@ import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.set
 import ch.icken.csvtoolkit.ui.Spinner
 import ch.icken.csvtoolkit.ui.VerticalDivider
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlin.math.max
 
@@ -82,10 +84,15 @@ class MergeTransform : Transform() {
                 if (mergeType.value == Type.RANDOM) shuffle()
             }
         } ?: return@coroutineScope intermediate
-        //TODO use coroutines
-        return@coroutineScope intermediate.onEachIndexed { index, row ->
-            row.putAll(mergeData[index])
-        }
+
+        val chunkSize = chunkSize(intermediate.size)
+        return@coroutineScope intermediate.chunked(chunkSize).mapIndexed { chunkIndex, chunk ->
+            async {
+                chunk.onEachIndexed { rowIndex, row ->
+                    row.putAll(mergeData[chunkIndex * chunkSize + rowIndex])
+                }
+            }
+        }.awaitAll().flatten() as MutableList<MutableMap<String, String>>
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
@@ -121,11 +128,12 @@ class MergeTransform : Transform() {
             titleText = "Merge",
             onHide = onHide,
             state = rememberDialogState(
-                size = DpSize(480.dp, 360.dp)
+                size = DpSize(480.dp, Dp.Unspecified)
             )
         ) {
             Row(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth()
+                    .height(240.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(

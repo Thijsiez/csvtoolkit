@@ -1,13 +1,16 @@
 package ch.icken.csvtoolkit.transform.condition
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Checkbox
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,9 +21,11 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
+import ch.icken.csvtoolkit.lowercaseIf
 import ch.icken.csvtoolkit.transform.Transform
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.TransformEditDialog
@@ -37,25 +42,26 @@ class TextCondition(parent: Transform) : Condition(parent) {
         }
         append(" ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(compareValue.value.text)
+            append(compareTo.value.text)
         }
     }
 
     private val column: MutableState<String?> = mutableStateOf(null)
     private val compareType: MutableState<Type> = mutableStateOf(Type.EQ)
-    private val compareValue: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue(""))
+    private val compareTo: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue(""))
+    private val compareText = derivedStateOf { compareTo.value.text.lowercaseIf { caseInsensitive.value } }
+    private val caseInsensitive: MutableState<Boolean> = mutableStateOf(false)
 
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column.value ?: return false
-        val referenceValue = row[columnName] ?: return false
-        val compareText = compareValue.value.text
+        val referenceText = row[columnName]?.lowercaseIf { caseInsensitive.value } ?: return false
         return when(compareType.value) {
-            Type.EQ -> referenceValue == compareText
-            Type.NEQ -> referenceValue != compareText
-            Type.SW -> referenceValue.startsWith(compareText)
-            Type.EW -> referenceValue.endsWith(compareText)
-            Type.C -> referenceValue.contains(compareText)
-            Type.NC -> !referenceValue.contains(compareText)
+            Type.EQ -> referenceText == compareText.value
+            Type.NEQ -> referenceText != compareText.value
+            Type.SW -> referenceText.startsWith(compareText.value)
+            Type.EW -> referenceText.endsWith(compareText.value)
+            Type.C -> referenceText.contains(compareText.value)
+            Type.NC -> !referenceText.contains(compareText.value)
         }
     }
 
@@ -68,38 +74,54 @@ class TextCondition(parent: Transform) : Condition(parent) {
             titleText = "Text Condition",
             onHide = onHide,
             state = rememberDialogState(
-                size = DpSize(720.dp, 210.dp)
+                size = DpSize(640.dp, Dp.Unspecified)
             )
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Spinner(
-                    items = context.headers,
-                    itemTransform = { Text(it) },
-                    onItemSelected = { column.value = it },
-                    label = "Reference Column"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(column.value ?: "-")
+                    Spinner(
+                        items = context.headers,
+                        itemTransform = { Text(it) },
+                        onItemSelected = { column.value = it },
+                        label = "Reference Column"
+                    ) {
+                        Text(column.value ?: "-")
+                    }
+                    Spinner(
+                        items = Type.values().toList(),
+                        itemTransform = { Text(it.uiName) },
+                        onItemSelected = { compareType.value = it },
+                        label = "Comparison Type"
+                    ) {
+                        Text(compareType.value.uiName)
+                    }
+                    OutlinedTextField(
+                        value = compareTo.value,
+                        onValueChange = { compareTo.value = it },
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        label = { Text("Text") },
+                        placeholder = { Text("Lorem ipsum") },
+                        singleLine = true
+                    )
                 }
-                Text("is")
-                Spinner(
-                    items = Type.values().toList(),
-                    itemTransform = { Text(it.uiName) },
-                    onItemSelected = { compareType.value = it },
-                    label = "Comparison Type"
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(compareType.value.uiName)
+                    Checkbox(
+                        checked = caseInsensitive.value,
+                        onCheckedChange = { isChecked ->
+                            caseInsensitive.value = isChecked
+                        }
+                    )
+                    Text("Case Insensitive")
                 }
-                OutlinedTextField(
-                    value = compareValue.value,
-                    onValueChange = { compareValue.value = it },
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    label = { Text("Comparison Value") },
-                    singleLine = true
-                )
             }
         }
     }

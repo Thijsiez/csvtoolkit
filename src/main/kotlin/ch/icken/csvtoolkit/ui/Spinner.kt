@@ -93,7 +93,7 @@ fun <T> Spinner(
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Open Dropdown",
+                    contentDescription = "Open dropdown",
                     modifier = Modifier.requiredSize(24.dp)
                 )
             }

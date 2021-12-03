@@ -25,6 +25,10 @@ fun LazyListState.calculateOffset(itemWidths: List<Float>): Float {
         ?.reduce { total, width -> total + width } ?: 0f) + firstVisibleItemScrollOffset
 }
 
-fun <E> MutableList<E>.set(index: Int, newElement: (oldElement: E) -> E) {
+inline fun <E> MutableList<E>.set(index: Int, newElement: (oldElement: E) -> E) {
     set(index, newElement(this[index]))
+}
+
+inline fun String.lowercaseIf(predicate: (String) -> Boolean): String {
+    return if (predicate(this)) lowercase() else this
 }

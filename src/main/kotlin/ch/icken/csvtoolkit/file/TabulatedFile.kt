@@ -1,6 +1,10 @@
 package ch.icken.csvtoolkit.file
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -55,7 +59,7 @@ abstract class TabulatedFile(
     fun Dialog(onHide: () -> Unit) {
         Dialog(
             state = rememberDialogState(
-                size = DpSize(960.dp, 640.dp)
+                size = DpSize(960.dp, Dp.Unspecified)
             ),
             title = name,
             undecorated = true,
@@ -73,11 +77,18 @@ abstract class TabulatedFile(
                 },
                 modifier = Modifier.border(Dp.Hairline, MaterialTheme.colors.primary)
             ) {
-                Card {
-                    if (state.value == State.LOADED) {
-                        MapTable(data)
-                    } else {
-                        ListTable(preview)
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                        .height(420.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        if (state.value == State.LOADED) {
+                            MapTable(data)
+                        } else {
+                            ListTable(preview)
+                        }
                     }
                 }
             }

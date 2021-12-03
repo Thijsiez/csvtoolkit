@@ -23,6 +23,6 @@ abstract class Condition(val parent: Transform) {
     ) {
         NUMERICAL("Numerical", { NumericalCondition(it) }),
         TEXT("Text", { TextCondition(it) }),
-        //TODO RegEx condition
+        REGEX("RegEx", { RegexCondition(it) })
     }
 }

@@ -4,12 +4,19 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Card
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -55,7 +62,7 @@ fun FileAddDialog(
 
     Dialog(
         state = rememberDialogState(
-            size = DpSize(960.dp, 640.dp)
+            size = DpSize(960.dp, Dp.Unspecified)
         ),
         title = titleText,
         undecorated = true,
@@ -85,6 +92,8 @@ fun FileAddDialog(
             modifier = Modifier.border(Dp.Hairline, MaterialTheme.colors.primary)
         ) {
             Column(
+                modifier = Modifier.fillMaxWidth()
+                    .height(500.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FileRow(
@@ -92,8 +101,10 @@ fun FileAddDialog(
                     fileType = fileType,
                     fileTypeCsvDelimiter = fileTypeCsvDelimiter
                 )
-                if (fileIsValid.value) {
-                    Card {
+                Card(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (fileIsValid.value) {
                         ListTable(file.value.preview)
                     }
                 }
@@ -132,6 +143,16 @@ private fun FileRow(
             onValueChange = { fileName.value = it },
             modifier = Modifier.padding(bottom = 8.dp),
             label = { Text("File Location") },
+            trailingIcon = {
+                IconButton(
+                    onClick = { /* TODO open file dialog */ }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FolderOpen,
+                        contentDescription = "Open file"
+                    )
+                }
+            },
             singleLine = true
         )
         Spinner(

@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.5.31"
-    id("org.jetbrains.compose") version "1.0.0-rc12"
+    id("org.jetbrains.compose") version "1.0.0"
 }
 
 repositories {
@@ -23,6 +23,7 @@ dependencies {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
+        jvmTarget = "11"
         //This allows us to use the experimental Material API calls
         freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn"
     }

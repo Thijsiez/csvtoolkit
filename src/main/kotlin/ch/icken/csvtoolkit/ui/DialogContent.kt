@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -16,9 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowScope
 
 @Composable
-fun DialogContent(
+fun WindowScope.DialogContent(
     confirmButton: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     dismissButton: @Composable (() -> Unit)? = null,
@@ -36,24 +38,27 @@ fun DialogContent(
     ) {
         Column {
             titleText?.let {
-                Box(
-                    modifier = Modifier.padding(start = 24.dp, top = 20.dp, end = 24.dp)
-                ) {
-                    Text(
-                        text = titleText,
-                        style = MaterialTheme.typography.h6
-                    )
+                WindowDraggableArea {
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(start = 24.dp, top = 20.dp, end = 24.dp, bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = titleText,
+                            style = MaterialTheme.typography.h6
+                        )
+                    }
                 }
             }
             Box(
-                modifier = Modifier.padding(start = 24.dp, top = 16.dp, end = 24.dp, bottom = 24.dp)
-                    .weight(1f)
+                modifier = Modifier.fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
             ) {
                 content()
             }
             Row(
                 modifier = Modifier.fillMaxWidth()
-                    .padding(8.dp),
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
             ) {
                 dismissButton?.invoke()
