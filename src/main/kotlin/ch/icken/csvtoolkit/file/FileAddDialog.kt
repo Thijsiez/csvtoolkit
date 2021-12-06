@@ -18,7 +18,6 @@ import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,11 +27,15 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.AwtWindow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.rememberDialogState
+import ch.icken.csvtoolkit.file.TabulatedFile.Type
 import ch.icken.csvtoolkit.ui.DialogContent
 import ch.icken.csvtoolkit.ui.ListTable
 import ch.icken.csvtoolkit.ui.Spinner
+import java.awt.FileDialog
+import java.awt.Frame
 import java.awt.datatransfer.DataFlavor
 import java.awt.dnd.DnDConstants
 import java.awt.dnd.DropTarget
@@ -45,15 +48,16 @@ fun FileAddDialog(
     onHide: () -> Unit,
     titleText: String = "Add File"
 ) {
+    val showOpenFileDialog = remember { mutableStateOf(false) }
     val fileName = remember { mutableStateOf(TextFieldValue("")) }
-    val fileType = remember { mutableStateOf(TabulatedFile.Type.CSV) }
+    val fileType = remember { mutableStateOf(Type.CSV) }
     val fileTypeCsvDelimiter = remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
     val fileIsValid = remember { derivedStateOf {
         File(fileName.value.text).run { exists() && isFile }
     } }
     val file = remember { derivedStateOf {
         when (fileType.value) {
-            TabulatedFile.Type.CSV -> CsvFile(
+            Type.CSV -> CsvFile(
                 path = fileName.value.text,
                 delimiter = fileTypeCsvDelimiter.value
             )
@@ -96,11 +100,48 @@ fun FileAddDialog(
                     .height(500.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FileRow(
-                    fileName = fileName,
-                    fileType = fileType,
-                    fileTypeCsvDelimiter = fileTypeCsvDelimiter
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = fileName.value,
+                        onValueChange = { fileName.value = it },
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        label = { Text("File Location") },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showOpenFileDialog.value = true }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FolderOpen,
+                                    contentDescription = "Open file"
+                                )
+                            }
+                        },
+                        singleLine = true
+                    )
+                    Spinner(
+                        items = Type.values().asList(),
+                        itemTransform = { Text(it.uiName) },
+                        onItemSelected = { fileType.value = it },
+                        label = "File Type"
+                    ) {
+                        Text(fileType.value.uiName)
+                    }
+                    when (fileType.value) {
+                        Type.CSV -> {
+                            Spinner(
+                                items = CsvFile.Delimiter.values().asList(),
+                                itemTransform = { Text(it.uiName) },
+                                onItemSelected = { fileTypeCsvDelimiter.value = it },
+                                label = "Delimiter"
+                            ) {
+                                Text(fileTypeCsvDelimiter.value.uiName)
+                            }
+                        }
+                    }
+                }
                 Card(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -126,61 +167,42 @@ fun FileAddDialog(
             }
         }
     }
-}
 
-@Composable
-private fun FileRow(
-    fileName: MutableState<TextFieldValue>,
-    fileType: MutableState<TabulatedFile.Type>,
-    fileTypeCsvDelimiter: MutableState<CsvFile.Delimiter>
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            value = fileName.value,
-            onValueChange = { fileName.value = it },
-            modifier = Modifier.padding(bottom = 8.dp),
-            label = { Text("File Location") },
-            trailingIcon = {
-                IconButton(
-                    onClick = { /* TODO open file dialog */ }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FolderOpen,
-                        contentDescription = "Open file"
-                    )
+    if (showOpenFileDialog.value) {
+        OpenFileDialog(
+            onFileSelected = { selectedFile ->
+                showOpenFileDialog.value = false
+                fileName.value = TextFieldValue(selectedFile.absolutePath)
+                when (selectedFile.extension) {
+                    in Type.CSV.extensions -> fileType.value = Type.CSV
                 }
-            },
-            singleLine = true
+            }
         )
-        Spinner(
-            items = TabulatedFile.Type.values().asList(),
-            itemTransform = { Text(it.uiName) },
-            onItemSelected = { fileType.value = it },
-            label = "File Type"
-        ) {
-            Text(fileType.value.uiName)
-        }
-        when (fileType.value) {
-            TabulatedFile.Type.CSV -> FileTypeCsv(
-                delimiter = fileTypeCsvDelimiter
-            )
-        }
     }
 }
 
 @Composable
-private fun FileTypeCsv(
-    delimiter: MutableState<CsvFile.Delimiter>
-) {
-    Spinner(
-        items = CsvFile.Delimiter.values().asList(),
-        itemTransform = { Text(it.uiName) },
-        onItemSelected = { delimiter.value = it },
-        label = "Delimiter"
-    ) {
-        Text(delimiter.value.uiName)
-    }
-}
+private fun OpenFileDialog(
+    onFileSelected: (selectedFile: File) -> Unit,
+    parent: Frame? = null
+) = AwtWindow(
+    create = {
+        object : FileDialog(parent, "Open File", LOAD) {
+            override fun setVisible(visible: Boolean) {
+                super.setVisible(visible)
+                if (visible && file != null) {
+                    onFileSelected(File(directory, file))
+                }
+            }
+        }.apply {
+            setFilenameFilter { _, fileName ->
+                Type.values().any { fileType ->
+                    fileType.extensions.any {
+                        fileName.endsWith(it)
+                    }
+                }
+            }
+        }
+    },
+    dispose = FileDialog::dispose
+)

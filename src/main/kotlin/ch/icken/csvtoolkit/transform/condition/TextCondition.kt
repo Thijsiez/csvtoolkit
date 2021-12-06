@@ -55,7 +55,7 @@ class TextCondition(parent: Transform) : Condition(parent) {
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column.value ?: return false
         val referenceText = row[columnName]?.lowercaseIf { caseInsensitive.value } ?: return false
-        return when(compareType.value) {
+        return when (compareType.value) {
             Type.EQ -> referenceText == compareText.value
             Type.NEQ -> referenceText != compareText.value
             Type.SW -> referenceText.startsWith(compareText.value)

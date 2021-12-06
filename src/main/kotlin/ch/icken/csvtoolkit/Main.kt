@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.AwtWindow
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
@@ -35,6 +36,9 @@ import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.TransformView
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.MapTable
+import java.awt.FileDialog
+import java.awt.Frame
+import java.io.File
 
 fun main() = application {
     val instance = ToolkitInstance()
@@ -64,6 +68,7 @@ private fun MainView(instance: ToolkitInstance) = Row(
     var showPreviewFileDialogFor: TabulatedFile? by remember { mutableStateOf(null) }
     var showEditTransformDialogFor: Transform? by remember { mutableStateOf(null) }
     var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
+    var showSaveFileDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.width(320.dp)
@@ -94,7 +99,7 @@ private fun MainView(instance: ToolkitInstance) = Row(
         }
         if (instance.data != null) {
             FloatingActionButton(
-                onClick = { /* TODO save file dialog */ },
+                onClick = { showSaveFileDialog = true },
                 modifier = Modifier.padding(16.dp)
                     .align(Alignment.BottomEnd)
             ) {
@@ -136,4 +141,30 @@ private fun MainView(instance: ToolkitInstance) = Row(
             onHide = { showEditConditionDialogFor = null }
         )
     }
+    if (showSaveFileDialog) {
+        SaveFileDialog(
+            onFileSpecified = { specifiedFile ->
+                showSaveFileDialog = false
+                instance.saveData(specifiedFile)
+            }
+        )
+    }
 }
+
+@Composable
+private fun SaveFileDialog(
+    onFileSpecified: (specifiedFile: File) -> Unit,
+    parent: Frame? = null
+) = AwtWindow(
+    create = {
+        object : FileDialog(parent, "Save CSV File", SAVE) {
+            override fun setVisible(visible: Boolean) {
+                super.setVisible(visible)
+                if (visible && file != null) {
+                    onFileSpecified(File(directory, file))
+                }
+            }
+        }
+    },
+    dispose = FileDialog::dispose
+)

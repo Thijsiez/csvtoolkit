@@ -7,11 +7,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.transform.Transform
+import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 class ToolkitInstance : CoroutineScope {
@@ -53,5 +55,19 @@ class ToolkitInstance : CoroutineScope {
         currentlyProcessingTransform = null
         isDoingTheThing = false
         launch(Dispatchers.Main) { data = finalData }
+    }
+
+    fun saveData(file: File) = launch {
+        data?.let { data ->
+            if (data.isEmpty()) return@launch
+
+            val headers = data.first().keys.toList()
+            csvWriter().open(file) {
+                writeRow(headers)
+                data.forEach { row ->
+                    writeRow(headers.map { row[it] ?: "" })
+                }
+            }
+        }
     }
 }

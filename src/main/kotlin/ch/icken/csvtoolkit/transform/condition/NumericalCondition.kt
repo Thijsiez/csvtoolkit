@@ -52,7 +52,7 @@ class NumericalCondition(parent: Transform) : Condition(parent) {
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column.value ?: return false
         val referenceDouble = row[columnName]?.toDoubleOrNull() ?: return false
-        return when(compareType.value) {
+        return when (compareType.value) {
             Type.EQ -> referenceDouble == compareDouble.value
             Type.NEQ -> referenceDouble != compareDouble.value
             Type.LT -> referenceDouble < compareDouble.value

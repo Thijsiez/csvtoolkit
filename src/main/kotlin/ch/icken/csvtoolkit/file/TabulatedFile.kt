@@ -96,9 +96,10 @@ abstract class TabulatedFile(
     }
 
     enum class Type(
-        val uiName: String
+        val uiName: String,
+        vararg val extensions: String
     ) {
-        CSV("CSV"),
+        CSV("CSV", "csv"),
         //TODO EXCEL("Excel")
     }
 
