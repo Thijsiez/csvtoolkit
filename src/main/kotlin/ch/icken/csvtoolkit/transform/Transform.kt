@@ -63,6 +63,7 @@ abstract class Transform {
         JOIN("Join", { JoinTransform() }, false),
         MERGE("Merge", { MergeTransform() }, false),
         CONDITIONAL("Conditional", { ConditionalTransformSet() }, false),
+        FILTER("Filter", { FilterTransform() }, false),
         SET("Set", { SetTransform(it) }, true)
     }
 }
