@@ -33,7 +33,7 @@ class ToolkitInstance : CoroutineScope {
     val allowDoingTheThing = derivedStateOf {
         files.size >= 1 && files.all { it.isValid } && transforms.size >= 1 && transforms.all { it.isValid(this) }
     }
-    var isDoingTheThing: Boolean by mutableStateOf(false); private set
+    var isDoingTheThing by mutableStateOf(false); private set
     var currentlyProcessingTransform: Transform? by mutableStateOf(null); private set
 
     fun headersUpTo(thisTransform: Transform, inclusive: Boolean = false): List<String> {

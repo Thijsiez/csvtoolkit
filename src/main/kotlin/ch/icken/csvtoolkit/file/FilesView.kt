@@ -102,7 +102,7 @@ private fun FilesItemView(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        when (file.state.value) {
+        when (file.state) {
             State.NOT_LOADED -> {
                 CircularProgressIndicator()
             }

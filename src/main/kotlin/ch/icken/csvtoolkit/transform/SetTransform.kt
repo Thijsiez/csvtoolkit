@@ -7,8 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
@@ -32,16 +33,16 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
     override val description: AnnotatedString get() = buildAnnotatedString {
         append("Set ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(column.value ?: "?")
+            append(column ?: "?")
         }
         append(" to ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(setValue.value.text)
+            append(setValue.text)
         }
     }
 
-    private val column: MutableState<String?> = mutableStateOf(null)
-    private val setValue: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue(""))
+    private var column: String? by mutableStateOf(null)
+    private var setValue by mutableStateOf(TextFieldValue(""))
 
     override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
 
@@ -50,26 +51,26 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
     override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
-        val columnName = column.value
+        val columnName = column
         if (columnName == null ||
             intermediate.firstOrNull()?.containsKey(columnName) == false) return@coroutineScope intermediate
         return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
             async {
-                chunk.onEach { it[columnName] = setValue.value.text }
+                chunk.onEach { it[columnName] = setValue.text }
             }
         }.awaitAll().flatten() as MutableList<MutableMap<String, String>>
     }
 
     override fun doTheConditionalThing(intermediateRow: MutableMap<String, String>): MutableMap<String, String> {
         return intermediateRow.apply {
-            val columnName = column.value
+            val columnName = column
             if (columnName == null || !containsKey(columnName)) return@apply
-            set(columnName, setValue.value.text)
+            set(columnName, setValue.text)
         }
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
-        val columnName = column.value
+        val columnName = column
 
         if (columnName == null) {
             invalidMessage = "Missing reference column"
@@ -84,7 +85,7 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
     }
 
     override fun isValidConditional(context: Context): Boolean {
-        return column.value in context.headers
+        return column in context.headers
     }
 
     @Composable
@@ -130,15 +131,15 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
                 Spinner(
                     items = headers,
                     itemTransform = { Text(it) },
-                    onItemSelected = { column.value = it },
+                    onItemSelected = { column = it },
                     label = "Reference Column"
                 ) {
-                    Text(column.value ?: "-")
+                    Text(column ?: "-")
                 }
                 Text("to")
                 OutlinedTextField(
-                    value = setValue.value,
-                    onValueChange = { setValue.value = it },
+                    value = setValue,
+                    onValueChange = { setValue = it },
                     modifier = Modifier.padding(bottom = 8.dp),
                     label = { Text("Value") },
                     singleLine = true

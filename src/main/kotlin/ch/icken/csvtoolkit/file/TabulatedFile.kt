@@ -10,8 +10,9 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -36,8 +37,8 @@ abstract class TabulatedFile(
 
     val file: File get() = File(path)
     val name: String get() = alias ?: file.nameWithoutExtension
-    val state: MutableState<State> = mutableStateOf(State.NOT_LOADED)
-    val isValid: Boolean get() = file.run { exists() && isFile } && state.value == State.LOADED
+    var state by mutableStateOf(State.NOT_LOADED); protected set
+    val isValid: Boolean get() = file.run { exists() && isFile } && state == State.LOADED
 
     abstract val headers: List<String>
     abstract val preview: List<List<String>>
@@ -47,12 +48,12 @@ abstract class TabulatedFile(
     fun load() {
         scope.launch {
             data = loadData()
-            state.value = State.LOADED
+            state = State.LOADED
         }
     }
 
     suspend fun <R> letData(block: suspend (data: List<Map<String, String>>) -> R): R? {
-        return if (this::data.isInitialized && state.value == State.LOADED) block(data) else null
+        return if (this::data.isInitialized && state == State.LOADED) block(data) else null
     }
 
     @Composable
@@ -84,7 +85,7 @@ abstract class TabulatedFile(
                     Card(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        if (state.value == State.LOADED) {
+                        if (state == State.LOADED) {
                             MapTable(data)
                         } else {
                             ListTable(preview)

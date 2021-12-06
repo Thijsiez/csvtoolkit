@@ -17,7 +17,7 @@ class CsvFile(
         reader.open(file) {
             val possibleHeader = readNext()
             if (possibleHeader == null) {
-                state.value = State.INVALID
+                state = State.INVALID
                 listOf()
             } else {
                 possibleHeader

@@ -19,8 +19,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
@@ -48,21 +50,19 @@ fun FileAddDialog(
     onHide: () -> Unit,
     titleText: String = "Add File"
 ) {
-    val showOpenFileDialog = remember { mutableStateOf(false) }
-    val fileName = remember { mutableStateOf(TextFieldValue("")) }
-    val fileType = remember { mutableStateOf(Type.CSV) }
-    val fileTypeCsvDelimiter = remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
-    val fileIsValid = remember { derivedStateOf {
-        File(fileName.value.text).run { exists() && isFile }
-    } }
-    val file = remember { derivedStateOf {
-        when (fileType.value) {
+    var showOpenFileDialog by remember { mutableStateOf(false) }
+    var fileName by remember { mutableStateOf(TextFieldValue("")) }
+    var fileType by remember { mutableStateOf(Type.CSV) }
+    var fileTypeCsvDelimiter by remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
+    val fileIsValid = derivedStateOf { File(fileName.text).run { exists() && isFile } }
+    val file = derivedStateOf {
+        when (fileType) {
             Type.CSV -> CsvFile(
-                path = fileName.value.text,
-                delimiter = fileTypeCsvDelimiter.value
+                path = fileName.text,
+                delimiter = fileTypeCsvDelimiter
             )
         }
-    } }
+    }
 
     Dialog(
         state = rememberDialogState(
@@ -105,13 +105,13 @@ fun FileAddDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = fileName.value,
-                        onValueChange = { fileName.value = it },
+                        value = fileName,
+                        onValueChange = { fileName = it },
                         modifier = Modifier.padding(bottom = 8.dp),
                         label = { Text("File Location") },
                         trailingIcon = {
                             IconButton(
-                                onClick = { showOpenFileDialog.value = true }
+                                onClick = { showOpenFileDialog = true }
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.FolderOpen,
@@ -124,20 +124,20 @@ fun FileAddDialog(
                     Spinner(
                         items = Type.values().asList(),
                         itemTransform = { Text(it.uiName) },
-                        onItemSelected = { fileType.value = it },
+                        onItemSelected = { fileType = it },
                         label = "File Type"
                     ) {
-                        Text(fileType.value.uiName)
+                        Text(fileType.uiName)
                     }
-                    when (fileType.value) {
+                    when (fileType) {
                         Type.CSV -> {
                             Spinner(
                                 items = CsvFile.Delimiter.values().asList(),
                                 itemTransform = { Text(it.uiName) },
-                                onItemSelected = { fileTypeCsvDelimiter.value = it },
+                                onItemSelected = { fileTypeCsvDelimiter = it },
                                 label = "Delimiter"
                             ) {
-                                Text(fileTypeCsvDelimiter.value.uiName)
+                                Text(fileTypeCsvDelimiter.uiName)
                             }
                         }
                     }
@@ -162,19 +162,19 @@ fun FileAddDialog(
                 } catch (e: Exception) {
                     emptyList()
                 }.firstOrNull()?.let {
-                    fileName.value = TextFieldValue(it.absolutePath)
+                    fileName = TextFieldValue(it.absolutePath)
                 }
             }
         }
     }
 
-    if (showOpenFileDialog.value) {
+    if (showOpenFileDialog) {
         OpenFileDialog(
             onFileSelected = { selectedFile ->
-                showOpenFileDialog.value = false
-                fileName.value = TextFieldValue(selectedFile.absolutePath)
+                showOpenFileDialog = false
+                fileName = TextFieldValue(selectedFile.absolutePath)
                 when (selectedFile.extension) {
-                    in Type.CSV.extensions -> fileType.value = Type.CSV
+                    in Type.CSV.extensions -> fileType = Type.CSV
                 }
             }
         )

@@ -16,7 +16,7 @@ abstract class Transform {
 
     abstract val description: AnnotatedString
 
-    var invalidMessage: String by mutableStateOf(""); protected set
+    var invalidMessage by mutableStateOf(""); protected set
 
     abstract fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String>
     abstract suspend fun doTheActualThing(

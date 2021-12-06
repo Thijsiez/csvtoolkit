@@ -7,8 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Checkbox
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
@@ -31,30 +32,30 @@ import kotlinx.coroutines.coroutineScope
 
 class JoinTransform : Transform() {
     override val description get() = buildAnnotatedString {
-        append(joinType.value.uiName)
+        append(joinType.uiName)
         append(" ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(column.value ?: "?")
+            append(column ?: "?")
         }
         append(" on ")
         withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
-            append(joinOnFile.value?.name ?: "?")
+            append(joinOnFile?.name ?: "?")
         }
         append("'s ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(joinOnColumn.value ?: "?")
+            append(joinOnColumn ?: "?")
         }
     }
 
-    private val column: MutableState<String?> = mutableStateOf(null)
-    private val joinType: MutableState<Type> = mutableStateOf(Type.INNER)
-    private val joinOnFile: MutableState<TabulatedFile?> = mutableStateOf(null)
-    private val joinOnColumn: MutableState<String?> = mutableStateOf(null)
-    private val caseInsensitive: MutableState<Boolean> = mutableStateOf(false)
+    private var column: String? by mutableStateOf(null)
+    private var joinType by mutableStateOf(Type.INNER)
+    private var joinOnFile: TabulatedFile? by mutableStateOf(null)
+    private var joinOnColumn: String? by mutableStateOf(null)
+    private var caseInsensitive by mutableStateOf(false)
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
-        val joinOnFileValue = joinOnFile.value
-        val joinOnColumnName = joinOnColumn.value
+        val joinOnFileValue = joinOnFile
+        val joinOnColumnName = joinOnColumn
 
         if (joinOnFileValue == null ||
             joinOnColumnName == null) return intermediate
@@ -67,9 +68,9 @@ class JoinTransform : Transform() {
     override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
-        val columnName = column.value
-        val joinOnFileValue = joinOnFile.value
-        val joinOnColumnName = joinOnColumn.value
+        val columnName = column
+        val joinOnFileValue = joinOnFile
+        val joinOnColumnName = joinOnColumn
 
         if (columnName == null ||
             joinOnFileValue == null ||
@@ -77,17 +78,17 @@ class JoinTransform : Transform() {
 
         val joinDataLookup = joinOnFileValue.letData { data ->
             data.associate {
-                val key = it[joinOnColumnName]?.lowercaseIf { caseInsensitive.value }
+                val key = it[joinOnColumnName]?.lowercaseIf { caseInsensitive }
                 key to it.filterNot { (columnName, _) -> columnName == joinOnColumnName }
             }
         }
         val joinLeftEmpty = joinOnFileValue.headers.filterNot { it == joinOnColumnName }.associateWith { "" }
         return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
             async {
-                when (joinType.value) {
+                when (joinType) {
                     Type.INNER -> {
                         (chunk as MutableList).onEach { row, iterator ->
-                            val joinData = joinDataLookup?.get(row[columnName]?.lowercaseIf { caseInsensitive.value })
+                            val joinData = joinDataLookup?.get(row[columnName]?.lowercaseIf { caseInsensitive })
                             if (joinData != null) row.putAll(joinData) else iterator.remove()
                         }
                     }
@@ -102,9 +103,9 @@ class JoinTransform : Transform() {
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
-        val columnName = column.value
-        val joinOnFileValue = joinOnFile.value
-        val joinOnColumnName = joinOnColumn.value
+        val columnName = column
+        val joinOnFileValue = joinOnFile
+        val joinOnColumnName = joinOnColumn
 
         if (columnName == null) {
             invalidMessage = "Missing left column"
@@ -161,18 +162,18 @@ class JoinTransform : Transform() {
                         Spinner(
                             items = instance.headersUpTo(this@JoinTransform),
                             itemTransform = { Text(it) },
-                            onItemSelected = { column.value = it },
+                            onItemSelected = { column = it },
                             label = "Reference Column"
                         ) {
-                            Text(column.value ?: "-")
+                            Text(column ?: "-")
                         }
                         Spinner(
                             items = Type.values().toList(),
                             itemTransform = { Text(it.uiName) },
-                            onItemSelected = { joinType.value = it },
+                            onItemSelected = { joinType = it },
                             label = "Join Type"
                         ) {
-                            Text(joinType.value.uiName)
+                            Text(joinType.uiName)
                         }
                     }
                     Text("ON")
@@ -182,19 +183,19 @@ class JoinTransform : Transform() {
                         Spinner(
                             items = instance.files,
                             itemTransform = { Text(it.name) },
-                            onItemSelected = { joinOnFile.value = it },
+                            onItemSelected = { joinOnFile = it },
                             label = "Join File"
                         ) {
-                            Text(joinOnFile.value?.name ?: "-")
+                            Text(joinOnFile?.name ?: "-")
                         }
                         Spinner(
-                            items = joinOnFile.value?.headers ?: emptyList(),
+                            items = joinOnFile?.headers ?: emptyList(),
                             itemTransform = { Text(it) },
-                            onItemSelected = { joinOnColumn.value = it },
+                            onItemSelected = { joinOnColumn = it },
                             label = "Join Column",
-                            enabled = joinOnFile.value != null
+                            enabled = joinOnFile != null
                         ) {
-                            Text(joinOnColumn.value ?: "-")
+                            Text(joinOnColumn ?: "-")
                         }
                     }
                 }
@@ -202,9 +203,9 @@ class JoinTransform : Transform() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked = caseInsensitive.value,
+                        checked = caseInsensitive,
                         onCheckedChange = { isChecked ->
-                            caseInsensitive.value = isChecked
+                            caseInsensitive = isChecked
                         }
                     )
                     Text("Case Insensitive")

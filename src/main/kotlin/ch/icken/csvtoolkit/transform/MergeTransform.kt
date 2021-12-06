@@ -17,9 +17,10 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
@@ -43,7 +44,7 @@ import kotlin.math.max
 
 class MergeTransform : Transform() {
     override val description get() = buildAnnotatedString {
-        append(mergeType.value.uiName)
+        append(mergeType.uiName)
         append(" ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             val numberOfColumns = mergeColumns.count { (_, merge) -> merge }
@@ -51,13 +52,13 @@ class MergeTransform : Transform() {
         }
         append(" of ")
         withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
-            append(mergeWithFile.value?.name ?: "?")
+            append(mergeWithFile?.name ?: "?")
         }
         append("'s columns")
     }
 
-    private val mergeType: MutableState<Type> = mutableStateOf(Type.RANDOM)
-    private val mergeWithFile: MutableState<TabulatedFile?> = mutableStateOf(null)
+    private var mergeType by mutableStateOf(Type.RANDOM)
+    private var mergeWithFile: TabulatedFile? by mutableStateOf(null)
     private val mergeColumns = mutableStateListOf<Pair<String, Boolean>>()
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
@@ -71,7 +72,7 @@ class MergeTransform : Transform() {
     override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
-        val mergeData = mergeWithFile.value?.letData { data ->
+        val mergeData = mergeWithFile?.letData { data ->
             val keepColumns = mergeColumns.filter { (_, merge) -> merge }.map { (columnName, _) -> columnName }
             data.mapTo(ArrayList(max(data.size, intermediate.size))) {
                 it.filter { (columnName, _) -> columnName in keepColumns }
@@ -81,7 +82,7 @@ class MergeTransform : Transform() {
                     repeat(intermediate.size / size - 1) { addAll(initialSizeData) }
                     addAll(initialSizeData.subList(0, intermediate.size % size))
                 }
-                if (mergeType.value == Type.RANDOM) shuffle()
+                if (mergeType == Type.RANDOM) shuffle()
             }
         } ?: return@coroutineScope intermediate
 
@@ -96,7 +97,7 @@ class MergeTransform : Transform() {
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
-        val mergeWithFileValue = mergeWithFile.value
+        val mergeWithFileValue = mergeWithFile
 
         if (mergeWithFileValue == null) {
             invalidMessage = "Missing file to merge with"
@@ -142,22 +143,22 @@ class MergeTransform : Transform() {
                     Spinner(
                         items = Type.values().toList(),
                         itemTransform = { Text(it.uiName) },
-                        onItemSelected = { mergeType.value = it },
+                        onItemSelected = { mergeType = it },
                         label = "Merge Type"
                     ) {
-                        Text(mergeType.value.uiName)
+                        Text(mergeType.uiName)
                     }
                     Spinner(
                         items = instance.files,
                         itemTransform = { Text(it.name) },
                         onItemSelected = { file ->
-                            mergeWithFile.value = file
+                            mergeWithFile = file
                             mergeColumns.clear()
                             mergeColumns.addAll(file.headers.map { it to true })
                         },
                         label = "Merge File"
                     ) {
-                        Text(mergeWithFile.value?.name ?: "-")
+                        Text(mergeWithFile?.name ?: "-")
                     }
                     Text(
                         text = "Data will be merged more than once " +

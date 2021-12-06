@@ -9,9 +9,10 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
@@ -34,28 +35,28 @@ import ch.icken.csvtoolkit.ui.Spinner
 class TextCondition(parent: Transform) : Condition(parent) {
     override val description: AnnotatedString get() = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(column.value ?: "?")
+            append(column ?: "?")
         }
         append(" ")
         withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
-            append(compareType.value.uiName.lowercase())
+            append(compareType.uiName.lowercase())
         }
         append(" ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(compareTo.value.text)
+            append(compareTo.text)
         }
     }
 
-    private val column: MutableState<String?> = mutableStateOf(null)
-    private val compareType: MutableState<Type> = mutableStateOf(Type.EQ)
-    private val compareTo: MutableState<TextFieldValue> = mutableStateOf(TextFieldValue(""))
-    private val compareText = derivedStateOf { compareTo.value.text.lowercaseIf { caseInsensitive.value } }
-    private val caseInsensitive: MutableState<Boolean> = mutableStateOf(false)
+    private var column: String? by mutableStateOf(null)
+    private var compareType by mutableStateOf(Type.EQ)
+    private var compareTo by mutableStateOf(TextFieldValue(""))
+    private val compareText = derivedStateOf { compareTo.text.lowercaseIf { caseInsensitive } }
+    private var caseInsensitive by mutableStateOf(false)
 
     override fun check(row: Map<String, String>): Boolean {
-        val columnName = column.value ?: return false
-        val referenceText = row[columnName]?.lowercaseIf { caseInsensitive.value } ?: return false
-        return when (compareType.value) {
+        val columnName = column ?: return false
+        val referenceText = row[columnName]?.lowercaseIf { caseInsensitive } ?: return false
+        return when (compareType) {
             Type.EQ -> referenceText == compareText.value
             Type.NEQ -> referenceText != compareText.value
             Type.SW -> referenceText.startsWith(compareText.value)
@@ -89,22 +90,22 @@ class TextCondition(parent: Transform) : Condition(parent) {
                     Spinner(
                         items = context.headers,
                         itemTransform = { Text(it) },
-                        onItemSelected = { column.value = it },
+                        onItemSelected = { column = it },
                         label = "Reference Column"
                     ) {
-                        Text(column.value ?: "-")
+                        Text(column ?: "-")
                     }
                     Spinner(
                         items = Type.values().toList(),
                         itemTransform = { Text(it.uiName) },
-                        onItemSelected = { compareType.value = it },
+                        onItemSelected = { compareType = it },
                         label = "Comparison Type"
                     ) {
-                        Text(compareType.value.uiName)
+                        Text(compareType.uiName)
                     }
                     OutlinedTextField(
-                        value = compareTo.value,
-                        onValueChange = { compareTo.value = it },
+                        value = compareTo,
+                        onValueChange = { compareTo = it },
                         modifier = Modifier.padding(bottom = 8.dp),
                         label = { Text("Text") },
                         placeholder = { Text("Lorem ipsum") },
@@ -115,9 +116,9 @@ class TextCondition(parent: Transform) : Condition(parent) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked = caseInsensitive.value,
+                        checked = caseInsensitive,
                         onCheckedChange = { isChecked ->
-                            caseInsensitive.value = isChecked
+                            caseInsensitive = isChecked
                         }
                     )
                     Text("Case Insensitive")
