@@ -1,4 +1,4 @@
-package ch.icken.csvtoolkit.transform
+package ch.icken.csvtoolkit.transform.condition
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Divider
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.MaterialTheme
@@ -27,74 +25,48 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
-import ch.icken.csvtoolkit.ToolkitInstance
-import ch.icken.csvtoolkit.onEach
 import ch.icken.csvtoolkit.reorderableItemModifier
-import ch.icken.csvtoolkit.transform.condition.Condition
-import ch.icken.csvtoolkit.transform.condition.ConditionItemView
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import ch.icken.csvtoolkit.transform.EditDialog
+import ch.icken.csvtoolkit.transform.Transform
+import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
 
-class FilterTransform : Transform(), TransformCustomItemView {
+class AndCondition(parent: Transform) : Condition(parent), ConditionCustomItemView {
     override val description get() = buildAnnotatedString {
-        append("Filter on ")
-        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(conditions.size.toString())
-        }
-        append(" conditions")
+        append("All of the following")
     }
 
     private val conditions = mutableStateListOf<Condition>()
 
-    override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
+    override fun check(row: Map<String, String>) = conditions.all { it.check(row) }
 
-    override suspend fun doTheActualThing(
-        intermediate: MutableList<MutableMap<String, String>>
-    ): MutableList<MutableMap<String, String>> = coroutineScope {
-        return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
-            async {
-                (chunk as MutableList).onEach { row, iterator ->
-                    if (conditions.any { !it.check(row) }) iterator.remove()
-                }
-            }
-        }.awaitAll().flatten() as MutableList<MutableMap<String, String>>
-    }
-
-    override fun isValid(instance: ToolkitInstance): Boolean {
-        val context = getContext(instance)
-
+    override fun isValid(context: ConditionalTransform.Context): Boolean {
         if (!conditions.all { it.isValid(context) }) {
             invalidMessage = "One or more conditions are invalid"
             return false
         }
-
-        return super.isValid(instance)
+        return true
     }
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun CustomItemView(
-        instance: ToolkitInstance,
-        onEditTransform: (Transform) -> Unit,
+        context: ConditionalTransform.Context,
         onEditCondition: (Condition) -> Unit,
         modifier: Modifier
     ) {
         Column(
             modifier = modifier
                 .combinedClickable(
-                    onClick = { onEditTransform(this) }
+                    onClick = { onEditCondition(this) }
                 )
                 .fillMaxWidth()
                 .padding(start = 16.dp),
@@ -111,27 +83,14 @@ class FilterTransform : Transform(), TransformCustomItemView {
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.body1
                 )
-                if (this@FilterTransform == instance.currentlyProcessingTransform) {
-                    CircularProgressIndicator(Modifier.padding(4.dp))
-                } else {
-                    Row(
-                        modifier = Modifier.requiredSize(48.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        when {
-                            conditions.isEmpty() -> TransformWarningIcon("Will be skipped")
-                            isValid(instance) -> TransformValidIcon()
-                            else -> TransformInvalidIcon(invalidMessage)
-                        }
-                    }
+                Row(
+                    modifier = Modifier.requiredSize(48.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    DefaultConditionStateContent(context, this@AndCondition)
                 }
             }
-            Divider()
-            Text(
-                text = "Conditions",
-                style = MaterialTheme.typography.caption
-            )
             if (conditions.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth()
@@ -144,7 +103,7 @@ class FilterTransform : Transform(), TransformCustomItemView {
             } else {
                 conditions.forEach {
                     ConditionItemView(
-                        context = getContext(instance),
+                        context = context,
                         condition = it,
                         onEditCondition = onEditCondition
                     )
@@ -155,7 +114,7 @@ class FilterTransform : Transform(), TransformCustomItemView {
 
     @Composable
     override fun Dialog(
-        instance: ToolkitInstance,
+        context: ConditionalTransform.Context,
         onHide: () -> Unit
     ) {
         var expanded by remember { mutableStateOf(false) }
@@ -163,7 +122,7 @@ class FilterTransform : Transform(), TransformCustomItemView {
         var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
 
         EditDialog(
-            titleText = "Filter",
+            titleText = "And",
             onHide = onHide,
             state = rememberDialogState(
                 size = DpSize(480.dp, Dp.Unspecified)
@@ -190,7 +149,7 @@ class FilterTransform : Transform(), TransformCustomItemView {
                 ) {
                     items(conditions, { it }) { condition ->
                         ConditionItemView(
-                            context = getContext(instance),
+                            context = context,
                             condition = condition,
                             onEditCondition = { showEditConditionDialogFor = it },
                             modifier = Modifier.reorderableItemModifier(reorderState, condition)
@@ -207,10 +166,10 @@ class FilterTransform : Transform(), TransformCustomItemView {
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
-                        Condition.Type.values().forEach {
+                        Type.values().forEach {
                             DropdownMenuItem(
                                 onClick = {
-                                    val condition = it.create(this@FilterTransform)
+                                    val condition = it.create(parent)
                                     conditions.add(condition)
                                     showEditConditionDialogFor = condition
                                     expanded = false
@@ -225,7 +184,7 @@ class FilterTransform : Transform(), TransformCustomItemView {
         }
 
         showEditConditionDialogFor?.Dialog(
-            context = getContext(instance),
+            context = context,
             onHide = { showEditConditionDialogFor = null }
         )
     }

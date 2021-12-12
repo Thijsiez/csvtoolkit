@@ -12,7 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +29,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 
 class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
-    override val description: AnnotatedString get() = buildAnnotatedString {
+    override val description get() = buildAnnotatedString {
         append("Set ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column ?: "?")
@@ -115,7 +114,7 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
         headers: List<String>,
         onHide: () -> Unit
     ) {
-        TransformEditDialog(
+        EditDialog(
             titleText = "Set",
             onHide = onHide,
             state = rememberDialogState(

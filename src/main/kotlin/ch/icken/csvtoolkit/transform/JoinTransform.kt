@@ -94,7 +94,8 @@ class JoinTransform : Transform() {
                     }
                     Type.LEFT -> {
                         chunk.onEach { row ->
-                            row.putAll(joinDataLookup?.get(row[columnName]) ?: joinLeftEmpty)
+                            val joinData = joinDataLookup?.get(row[columnName]?.lowercaseIf { caseInsensitive })
+                            row.putAll(joinData ?: joinLeftEmpty)
                         }
                     }
                 }
@@ -140,7 +141,7 @@ class JoinTransform : Transform() {
         instance: ToolkitInstance,
         onHide: () -> Unit
     ) {
-        TransformEditDialog(
+        EditDialog(
             titleText = "Join",
             onHide = onHide,
             state = rememberDialogState(

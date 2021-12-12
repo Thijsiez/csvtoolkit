@@ -13,7 +13,7 @@ import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ui.DialogContent
 
 @Composable
-fun TransformEditDialog(
+fun EditDialog(
     titleText: String,
     onHide: () -> Unit,
     state: DialogState = rememberDialogState(),

@@ -125,7 +125,7 @@ class MergeTransform : Transform() {
     ) {
         val scrollState = rememberLazyListState()
 
-        TransformEditDialog(
+        EditDialog(
             titleText = "Merge",
             onHide = onHide,
             state = rememberDialogState(

@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.reorderableItemModifier
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.ConditionItemView
 import ch.icken.csvtoolkit.ui.VerticalDivider
@@ -86,7 +87,13 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
-        if (!transforms.all { it.isValidConditional(getContext(instance)) }) {
+        val context = getContext(instance)
+
+        if (!conditions.all { it.isValid(context) }) {
+            invalidMessage = "One or more conditions are invalid"
+            return false
+        }
+        if (!transforms.all { it.isValidConditional(context) }) {
             invalidMessage = "One or more transforms are invalid"
             return false
         }
@@ -156,6 +163,7 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
             } else {
                 conditions.forEach {
                     ConditionItemView(
+                        context = getContext(instance),
                         condition = it,
                         onEditCondition = onEditCondition
                     )
@@ -180,10 +188,7 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
                     TransformItemView(
                         instance = instance,
                         transform = it,
-                        onEditTransform = onEditTransform,
-                        stateContent = {
-                            DefaultConditionalTransformStateContent(instance, it)
-                        }
+                        onEditTransform = onEditTransform
                     )
                 }
             }
@@ -202,7 +207,7 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
         var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
         var showEditTransformDialogFor: ConditionalTransform? by remember { mutableStateOf(null) }
 
-        TransformEditDialog(
+        EditDialog(
             titleText = "Conditional",
             onHide = onHide,
             state = rememberDialogState(
@@ -235,9 +240,10 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
                     ) {
                         items(conditions, { it }) { condition ->
                             ConditionItemView(
+                                context = getContext(instance),
                                 condition = condition,
                                 onEditCondition = { showEditConditionDialogFor = it },
-                                modifier = reorderableItemModifier(conditionReorderState, condition)
+                                modifier = Modifier.reorderableItemModifier(conditionReorderState, condition)
                             )
                         }
                     }
@@ -291,10 +297,8 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
                                 instance = instance,
                                 transform = transform,
                                 onEditTransform = { if (it is ConditionalTransform) showEditTransformDialogFor = it },
-                                modifier = reorderableItemModifier(transformReorderState, transform)
-                            ) {
-                                DefaultConditionalTransformStateContent(instance, transform)
-                            }
+                                modifier = Modifier.reorderableItemModifier(transformReorderState, transform)
+                            )
                         }
                     }
                     Box {

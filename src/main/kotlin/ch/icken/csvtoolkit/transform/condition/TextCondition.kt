@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -29,11 +28,11 @@ import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.lowercaseIf
 import ch.icken.csvtoolkit.transform.Transform
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
-import ch.icken.csvtoolkit.transform.TransformEditDialog
+import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.ui.Spinner
 
 class TextCondition(parent: Transform) : Condition(parent) {
-    override val description: AnnotatedString get() = buildAnnotatedString {
+    override val description get() = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column ?: "?")
         }
@@ -66,12 +65,27 @@ class TextCondition(parent: Transform) : Condition(parent) {
         }
     }
 
+    override fun isValid(context: ConditionalTransform.Context): Boolean {
+        val columnName = column
+
+        if (columnName == null) {
+            invalidMessage = "Missing reference column"
+            return false
+        }
+        if (columnName !in context.headers) {
+            invalidMessage = "Reference column not available"
+            return false
+        }
+
+        return true
+    }
+
     @Composable
     override fun Dialog(
         context: ConditionalTransform.Context,
         onHide: () -> Unit
     ) {
-        TransformEditDialog(
+        EditDialog(
             titleText = "Text Condition",
             onHide = onHide,
             state = rememberDialogState(
