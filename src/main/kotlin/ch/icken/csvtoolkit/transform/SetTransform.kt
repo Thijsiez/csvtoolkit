@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
+import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Spinner
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -83,40 +84,46 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
         return super.isValid(instance)
     }
 
-    override fun isValidConditional(context: Context): Boolean {
+    override fun isValidConditional(context: Condition.Context): Boolean {
         return column in context.headers
     }
 
     @Composable
     override fun Dialog(
         instance: ToolkitInstance,
-        onHide: () -> Unit
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         Dialog(
             headers = instance.headersUpTo(this),
-            onHide = onHide
+            onHide = onHide,
+            onDelete = onDelete
         )
     }
 
     @Composable
     override fun ConditionalDialog(
-        context: Context,
-        onHide: () -> Unit
+        context: Condition.Context,
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         Dialog(
             headers = context.headers,
-            onHide = onHide
+            onHide = onHide,
+            onDelete = onDelete
         )
     }
 
     @Composable
     private fun Dialog(
         headers: List<String>,
-        onHide: () -> Unit
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         EditDialog(
             titleText = "Set",
             onHide = onHide,
+            onDelete = onDelete,
             state = rememberDialogState(
                 size = DpSize(480.dp, Dp.Unspecified)
             )

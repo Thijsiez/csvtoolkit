@@ -31,10 +31,14 @@ import androidx.compose.ui.window.rememberWindowState
 import ch.icken.csvtoolkit.file.FileAddDialog
 import ch.icken.csvtoolkit.file.FilesView
 import ch.icken.csvtoolkit.file.TabulatedFile
+import ch.icken.csvtoolkit.transform.ConditionalTransformSet
 import ch.icken.csvtoolkit.transform.Transform
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.TransformView
 import ch.icken.csvtoolkit.transform.condition.Condition
+import ch.icken.csvtoolkit.ui.Confirmation
+import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
+import ch.icken.csvtoolkit.ui.DeleteConfirmationContent
 import ch.icken.csvtoolkit.ui.MapTable
 import java.awt.FileDialog
 import java.awt.Frame
@@ -68,6 +72,7 @@ private fun MainView(instance: ToolkitInstance) = Row(
     var showPreviewFileDialogFor: TabulatedFile? by remember { mutableStateOf(null) }
     var showEditTransformDialogFor: Transform? by remember { mutableStateOf(null) }
     var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
+    var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
     var showSaveFileDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -125,22 +130,53 @@ private fun MainView(instance: ToolkitInstance) = Row(
         if (transform is ConditionalTransform && transform.parent != null) {
             transform.ConditionalDialog(
                 context = transform.parent.getContext(instance),
-                onHide = { showEditTransformDialogFor = null }
+                onHide = { showEditTransformDialogFor = null },
+                onDelete = {
+                    showConfirmationDialogFor = Confirmation(
+                        title = "Delete conditional transformation?",
+                        onHide = { showConfirmationDialogFor = null },
+                        positive = "DELETE" to {
+                            if (transform.parent is ConditionalTransformSet) {
+                                transform.parent.remove(transform)
+                            }
+                        }
+                    ) {
+                        DeleteConfirmationContent(transform.description)
+                    }
+                }
             )
         } else {
             transform.Dialog(
                 instance = instance,
-                onHide = { showEditTransformDialogFor = null }
+                onHide = { showEditTransformDialogFor = null },
+                onDelete = {
+                    showConfirmationDialogFor = Confirmation(
+                        title = "Delete transformation?",
+                        onHide = { showConfirmationDialogFor = null },
+                        positive = "DELETE" to {
+                            instance.transforms.remove(transform)
+                        }
+                    ) {
+                        DeleteConfirmationContent(transform.description)
+                    }
+                }
             )
         }
 
     }
     showEditConditionDialogFor?.let { condition ->
         condition.Dialog(
-            context = condition.parent.getContext(instance),
-            onHide = { showEditConditionDialogFor = null }
+            context = condition.parentTransform.getContext(instance),
+            onHide = { showEditConditionDialogFor = null },
+            onDelete = {
+                showConfirmationDialogFor = DeleteConditionConfirmation(
+                    condition = condition,
+                    onHide = { showConfirmationDialogFor = null }
+                )
+            }
         )
     }
+    showConfirmationDialogFor?.Dialog()
     if (showSaveFileDialog) {
         SaveFileDialog(
             onFileSpecified = { specifiedFile ->

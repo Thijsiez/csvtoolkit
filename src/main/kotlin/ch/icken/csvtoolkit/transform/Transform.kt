@@ -2,11 +2,13 @@ package ch.icken.csvtoolkit.transform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.AnnotatedString
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.firstDuplicateOrNull
+import ch.icken.csvtoolkit.transform.condition.Condition
 
 abstract class Transform {
     companion object {
@@ -35,23 +37,29 @@ abstract class Transform {
     @Composable
     abstract fun Dialog(
         instance: ToolkitInstance,
-        onHide: () -> Unit
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     )
 
-    fun getContext(instance: ToolkitInstance): ConditionalTransform.Context {
-        return ConditionalTransform.Context(
+    fun getContext(instance: ToolkitInstance): Condition.Context {
+        return Condition.Context(
             headers = instance.headersUpTo(this)
         )
     }
 
+    abstract class ConditionParentTransform : Transform() {
+        protected val conditions = mutableStateListOf<Condition>()
+
+        fun remove(condition: Condition) = conditions.remove(condition)
+    }
     abstract class ConditionalTransform(val parent: Transform?) : Transform() {
         abstract fun doTheConditionalHeaderThing(intermediate: MutableList<String>): MutableList<String>
         abstract fun doTheConditionalThing(intermediateRow: MutableMap<String, String>): MutableMap<String, String>
-        abstract fun isValidConditional(context: Context): Boolean
-        @Composable abstract fun ConditionalDialog(context: Context, onHide: () -> Unit)
-
-        data class Context(
-            val headers: List<String>
+        abstract fun isValidConditional(context: Condition.Context): Boolean
+        @Composable abstract fun ConditionalDialog(
+            context: Condition.Context,
+            onHide: () -> Unit,
+            onDelete: () -> Unit
         )
     }
 

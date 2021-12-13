@@ -21,12 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.ui.Tooltip
 
 @Composable
 fun ConditionItemView(
-    context: ConditionalTransform.Context,
+    context: Condition.Context,
     condition: Condition,
     onEditCondition: (Condition) -> Unit,
     modifier: Modifier = Modifier,
@@ -86,7 +85,7 @@ fun ConditionDefaultItemView(
 
 @Composable
 fun DefaultConditionStateContent(
-    context: ConditionalTransform.Context,
+    context: Condition.Context,
     condition: Condition
 ) {
     when {
@@ -95,6 +94,7 @@ fun DefaultConditionStateContent(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConditionValidIcon() {
     TooltipArea(
@@ -107,6 +107,7 @@ fun ConditionValidIcon() {
         )
     }
 }
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConditionInvalidIcon(message: String) {
     TooltipArea(
@@ -123,7 +124,7 @@ fun ConditionInvalidIcon(message: String) {
 interface ConditionCustomItemView {
     @Composable
     fun CustomItemView(
-        context: ConditionalTransform.Context,
+        context: Condition.Context,
         onEditCondition: (Condition) -> Unit,
         modifier: Modifier
     )

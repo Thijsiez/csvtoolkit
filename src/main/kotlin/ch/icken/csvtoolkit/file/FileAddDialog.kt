@@ -1,6 +1,5 @@
 package ch.icken.csvtoolkit.file
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
@@ -78,8 +76,8 @@ fun FileAddDialog(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onAddFile(file.value)
                         onHide()
+                        onAddFile(file.value)
                     },
                     enabled = fileIsValid.value
                 ) {
@@ -92,8 +90,7 @@ fun FileAddDialog(
                 ) {
                     Text("DISCARD")
                 }
-            },
-            modifier = Modifier.border(Dp.Hairline, MaterialTheme.colors.primary)
+            }
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()

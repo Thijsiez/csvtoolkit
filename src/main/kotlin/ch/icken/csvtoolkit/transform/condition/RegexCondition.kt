@@ -22,12 +22,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
-import ch.icken.csvtoolkit.transform.Transform
-import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.EditDialog
+import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.ui.Spinner
 
-class RegexCondition(parent: Transform) : Condition(parent) {
+class RegexCondition(
+    parentTransform: ConditionParentTransform,
+    parentCondition: ConditionParent?
+) : Condition(parentTransform, parentCondition) {
     override val description get() = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column ?: "?")
@@ -48,7 +50,7 @@ class RegexCondition(parent: Transform) : Condition(parent) {
         return referenceValue.matches(compareRegex.value)
     }
 
-    override fun isValid(context: ConditionalTransform.Context): Boolean {
+    override fun isValid(context: Context): Boolean {
         val columnName = column
 
         if (columnName == null) {
@@ -65,12 +67,14 @@ class RegexCondition(parent: Transform) : Condition(parent) {
 
     @Composable
     override fun Dialog(
-        context: ConditionalTransform.Context,
-        onHide: () -> Unit
+        context: Context,
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         EditDialog(
             titleText = "RegEx Condition",
             onHide = onHide,
+            onDelete = onDelete,
             state = rememberDialogState(
                 size = DpSize(480.dp, Dp.Unspecified)
             )

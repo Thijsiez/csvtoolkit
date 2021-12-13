@@ -21,7 +21,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,9 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.onEach
-import ch.icken.csvtoolkit.reorderableItemModifier
+import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.ConditionItemView
+import ch.icken.csvtoolkit.ui.Confirmation
+import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
+import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -47,7 +49,7 @@ import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
 
-class FilterTransform : Transform(), TransformCustomItemView {
+class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
     override val description get() = buildAnnotatedString {
         append("Filter on ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
@@ -55,8 +57,6 @@ class FilterTransform : Transform(), TransformCustomItemView {
         }
         append(" conditions")
     }
-
-    private val conditions = mutableStateListOf<Condition>()
 
     override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
 
@@ -156,15 +156,18 @@ class FilterTransform : Transform(), TransformCustomItemView {
     @Composable
     override fun Dialog(
         instance: ToolkitInstance,
-        onHide: () -> Unit
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         var expanded by remember { mutableStateOf(false) }
         val reorderState = rememberReorderState()
         var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
+        var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
 
         EditDialog(
             titleText = "Filter",
             onHide = onHide,
+            onDelete = onDelete,
             state = rememberDialogState(
                 size = DpSize(480.dp, Dp.Unspecified)
             )
@@ -210,7 +213,7 @@ class FilterTransform : Transform(), TransformCustomItemView {
                         Condition.Type.values().forEach {
                             DropdownMenuItem(
                                 onClick = {
-                                    val condition = it.create(this@FilterTransform)
+                                    val condition = it.create(this@FilterTransform, null)
                                     conditions.add(condition)
                                     showEditConditionDialogFor = condition
                                     expanded = false
@@ -224,9 +227,18 @@ class FilterTransform : Transform(), TransformCustomItemView {
             }
         }
 
-        showEditConditionDialogFor?.Dialog(
-            context = getContext(instance),
-            onHide = { showEditConditionDialogFor = null }
-        )
+        showEditConditionDialogFor?.let { condition ->
+            condition.Dialog(
+                context = getContext(instance),
+                onHide = { showEditConditionDialogFor = null },
+                onDelete = {
+                    showConfirmationDialogFor = DeleteConditionConfirmation(
+                        condition = condition,
+                        onHide = { showConfirmationDialogFor = null }
+                    )
+                }
+            )
+        }
+        showConfirmationDialogFor?.Dialog()
     }
 }

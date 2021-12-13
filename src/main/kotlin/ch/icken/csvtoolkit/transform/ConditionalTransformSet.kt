@@ -37,10 +37,14 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
-import ch.icken.csvtoolkit.reorderableItemModifier
+import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.ConditionItemView
+import ch.icken.csvtoolkit.ui.Confirmation
+import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
+import ch.icken.csvtoolkit.ui.DeleteConfirmationContent
 import ch.icken.csvtoolkit.ui.VerticalDivider
+import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -48,7 +52,7 @@ import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
 
-class ConditionalTransformSet : Transform(), TransformCustomItemView {
+class ConditionalTransformSet : ConditionParentTransform(), TransformCustomItemView {
     override val description get() = buildAnnotatedString {
         append("Do ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
@@ -61,7 +65,6 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
         append(" ${if (conditions.size != 1) "conditions are" else "condition is"} met")
     }
 
-    private val conditions = mutableStateListOf<Condition>()
     private val transforms = mutableStateListOf<ConditionalTransform>()
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
@@ -100,6 +103,8 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
 
         return super.isValid(instance)
     }
+
+    fun remove(transform: ConditionalTransform) = transforms.remove(transform)
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
@@ -198,7 +203,8 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
     @Composable
     override fun Dialog(
         instance: ToolkitInstance,
-        onHide: () -> Unit
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         var conditionsExpanded by remember { mutableStateOf(false) }
         val conditionReorderState = rememberReorderState()
@@ -206,10 +212,12 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
         val transformReorderState = rememberReorderState()
         var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
         var showEditTransformDialogFor: ConditionalTransform? by remember { mutableStateOf(null) }
+        var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
 
         EditDialog(
             titleText = "Conditional",
             onHide = onHide,
+            onDelete = onDelete,
             state = rememberDialogState(
                 size = DpSize(720.dp, Dp.Unspecified)
             )
@@ -260,7 +268,7 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
                             Condition.Type.values().forEach {
                                 DropdownMenuItem(
                                     onClick = {
-                                        val condition = it.create(this@ConditionalTransformSet)
+                                        val condition = it.create(this@ConditionalTransformSet, null)
                                         conditions.add(condition)
                                         showEditConditionDialogFor = condition
                                         conditionsExpanded = false
@@ -331,17 +339,39 @@ class ConditionalTransformSet : Transform(), TransformCustomItemView {
             }
         }
 
-        showEditConditionDialogFor?.Dialog(
-            context = getContext(instance),
-            onHide = { showEditConditionDialogFor = null }
-        )
+        showEditConditionDialogFor?.let { condition ->
+            condition.Dialog(
+                context = getContext(instance),
+                onHide = { showEditConditionDialogFor = null },
+                onDelete = {
+                    showConfirmationDialogFor = DeleteConditionConfirmation(
+                        condition = condition,
+                        onHide = { showConfirmationDialogFor = null }
+                    )
+                }
+            )
+        }
         showEditTransformDialogFor?.let { transform ->
             if (transform.parent != null) {
                 transform.ConditionalDialog(
                     context = transform.parent.getContext(instance),
-                    onHide = { showEditTransformDialogFor = null }
+                    onHide = { showEditTransformDialogFor = null },
+                    onDelete = {
+                        showConfirmationDialogFor = Confirmation(
+                            title = "Delete conditional transform?",
+                            onHide = { showConfirmationDialogFor = null },
+                            positive = "DELETE" to {
+                                if (transform.parent is ConditionalTransformSet) {
+                                    transform.parent.remove(transform)
+                                }
+                            }
+                        ) {
+                            DeleteConfirmationContent(transform.description)
+                        }
+                    }
                 )
             }
         }
+        showConfirmationDialogFor?.Dialog()
     }
 }

@@ -37,10 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ch.icken.csvtoolkit.ToolkitInstance
-import ch.icken.csvtoolkit.reorderableItemModifier
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Tooltip
+import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
@@ -235,6 +235,7 @@ fun DefaultConditionalTransformStateContent(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransformValidIcon() {
     TooltipArea(
@@ -247,6 +248,7 @@ fun TransformValidIcon() {
         )
     }
 }
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransformWarningIcon(message: String) {
     TooltipArea(
@@ -259,6 +261,7 @@ fun TransformWarningIcon(message: String) {
         )
     }
 }
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransformInvalidIcon(message: String) {
     TooltipArea(

@@ -1,12 +1,6 @@
 package ch.icken.csvtoolkit
 
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.zIndex
-import org.burnoutcrew.reorderable.ReorderableState
-import org.burnoutcrew.reorderable.detectReorderAfterLongPress
 
 fun <E> List<E>.firstDuplicateOrNull(): E? {
     val set = mutableSetOf<E>()
@@ -38,12 +32,3 @@ inline fun <E> MutableList<E>.set(index: Int, newElement: (oldElement: E) -> E) 
 inline fun String.lowercaseIf(predicate: (String) -> Boolean): String {
     return if (predicate(this)) lowercase() else this
 }
-
-fun Modifier.reorderableItemModifier(state: ReorderableState, key: Any) =
-    composed {
-        Modifier.zIndex(1f)
-            .graphicsLayer {
-                translationY = state.offsetByKey(key) ?: 0f
-            }
-    }
-    .detectReorderAfterLongPress(state)

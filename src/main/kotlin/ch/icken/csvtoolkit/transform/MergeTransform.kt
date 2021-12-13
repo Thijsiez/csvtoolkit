@@ -121,13 +121,15 @@ class MergeTransform : Transform() {
     @Composable
     override fun Dialog(
         instance: ToolkitInstance,
-        onHide: () -> Unit
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         val scrollState = rememberLazyListState()
 
         EditDialog(
             titleText = "Merge",
             onHide = onHide,
+            onDelete = onDelete,
             state = rememberDialogState(
                 size = DpSize(480.dp, Dp.Unspecified)
             )

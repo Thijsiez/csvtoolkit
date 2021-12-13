@@ -1,12 +1,10 @@
 package ch.icken.csvtoolkit.file
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
@@ -75,8 +73,7 @@ abstract class TabulatedFile(
                     ) {
                         Text("CLOSE")
                     }
-                },
-                modifier = Modifier.border(Dp.Hairline, MaterialTheme.colors.primary)
+                }
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth()

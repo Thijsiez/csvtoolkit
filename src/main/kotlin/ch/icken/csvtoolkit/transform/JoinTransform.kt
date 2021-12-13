@@ -139,11 +139,13 @@ class JoinTransform : Transform() {
     @Composable
     override fun Dialog(
         instance: ToolkitInstance,
-        onHide: () -> Unit
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         EditDialog(
             titleText = "Join",
             onHide = onHide,
+            onDelete = onDelete,
             state = rememberDialogState(
                 size = DpSize(480.dp, Dp.Unspecified)
             )

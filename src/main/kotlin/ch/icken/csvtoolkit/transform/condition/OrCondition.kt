@@ -19,7 +19,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,24 +30,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
-import ch.icken.csvtoolkit.reorderableItemModifier
 import ch.icken.csvtoolkit.transform.EditDialog
-import ch.icken.csvtoolkit.transform.Transform
-import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
+import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
+import ch.icken.csvtoolkit.transform.condition.Condition.ConditionParent
+import ch.icken.csvtoolkit.ui.Confirmation
+import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
+import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
 
-class OrCondition(parent: Transform) : Condition(parent), ConditionCustomItemView {
+class OrCondition(
+    parentTransform: ConditionParentTransform,
+    parentCondition: ConditionParent?
+) : ConditionParent(parentTransform, parentCondition), ConditionCustomItemView {
     override val description get() = buildAnnotatedString {
         append("At least one of the following")
     }
 
-    private val conditions = mutableStateListOf<Condition>()
-
     override fun check(row: Map<String, String>) = conditions.any { it.check(row) }
 
-    override fun isValid(context: ConditionalTransform.Context): Boolean {
+    override fun isValid(context: Context): Boolean {
         if (!conditions.all { it.isValid(context) }) {
             invalidMessage = "One or more conditions are invalid"
             return false
@@ -59,7 +61,7 @@ class OrCondition(parent: Transform) : Condition(parent), ConditionCustomItemVie
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun CustomItemView(
-        context: ConditionalTransform.Context,
+        context: Context,
         onEditCondition: (Condition) -> Unit,
         modifier: Modifier
     ) {
@@ -114,16 +116,19 @@ class OrCondition(parent: Transform) : Condition(parent), ConditionCustomItemVie
 
     @Composable
     override fun Dialog(
-        context: ConditionalTransform.Context,
-        onHide: () -> Unit
+        context: Context,
+        onHide: () -> Unit,
+        onDelete: () -> Unit
     ) {
         var expanded by remember { mutableStateOf(false) }
         val reorderState = rememberReorderState()
         var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
+        var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
 
         EditDialog(
             titleText = "Or",
             onHide = onHide,
+            onDelete = onDelete,
             state = rememberDialogState(
                 size = DpSize(480.dp, Dp.Unspecified)
             )
@@ -169,7 +174,7 @@ class OrCondition(parent: Transform) : Condition(parent), ConditionCustomItemVie
                         Type.values().forEach {
                             DropdownMenuItem(
                                 onClick = {
-                                    val condition = it.create(parent)
+                                    val condition = it.create(parentTransform, this@OrCondition)
                                     conditions.add(condition)
                                     showEditConditionDialogFor = condition
                                     expanded = false
@@ -183,9 +188,18 @@ class OrCondition(parent: Transform) : Condition(parent), ConditionCustomItemVie
             }
         }
 
-        showEditConditionDialogFor?.Dialog(
-            context = context,
-            onHide = { showEditConditionDialogFor = null }
-        )
+        showEditConditionDialogFor?.let { condition ->
+            condition.Dialog(
+                context = context,
+                onHide = { showEditConditionDialogFor = null },
+                onDelete = {
+                    showConfirmationDialogFor = DeleteConditionConfirmation(
+                        condition = condition,
+                        onHide = { showConfirmationDialogFor = null }
+                    )
+                }
+            )
+        }
+        showConfirmationDialogFor?.Dialog()
     }
 }
