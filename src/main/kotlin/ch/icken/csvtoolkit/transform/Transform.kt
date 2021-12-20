@@ -68,10 +68,13 @@ abstract class Transform {
         val create: (parent: Transform?) -> Transform,
         val isConditional: Boolean
     ) {
-        JOIN("Join", { JoinTransform() }, false),
-        MERGE("Merge", { MergeTransform() }, false),
         CONDITIONAL("Conditional", { ConditionalTransformSet() }, false),
         FILTER("Filter", { FilterTransform() }, false),
+        //TODO grouping transform
+        JOIN("Join", { JoinTransform() }, false),
+        MERGE("Merge", { MergeTransform() }, false),
+        ORDER("Order", { OrderTransform() }, false),
+        SELECT("Select", { SelectTransform() }, false),
         SET("Set", { SetTransform(it) }, true)
     }
 }
