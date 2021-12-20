@@ -146,16 +146,24 @@ fun TransformItemView(
     onEditCondition: (Condition) -> Unit = {},
     modifier: Modifier = Modifier,
     stateContent: @Composable RowScope.() -> Unit = {
-        if (transform is ConditionalTransform) {
-            DefaultConditionalTransformStateContent(
-                instance = instance,
-                transform = transform
-            )
-        } else {
-            DefaultTransformStateContent(
-                instance = instance,
-                transform = transform
-            )
+        when (transform) {
+            is TransformCustomStateContent -> {
+                transform.CustomStateContent(
+                    instance = instance
+                )
+            }
+            is ConditionalTransform -> {
+                DefaultConditionalTransformStateContent(
+                    instance = instance,
+                    transform = transform
+                )
+            }
+            else -> {
+                DefaultTransformStateContent(
+                    instance = instance,
+                    transform = transform
+                )
+            }
         }
     }
 ) {
@@ -282,5 +290,11 @@ interface TransformCustomItemView {
         onEditTransform: (Transform) -> Unit,
         onEditCondition: (Condition) -> Unit,
         modifier: Modifier
+    )
+}
+interface TransformCustomStateContent {
+    @Composable
+    fun CustomStateContent(
+        instance: ToolkitInstance
     )
 }

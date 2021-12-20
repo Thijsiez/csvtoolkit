@@ -68,6 +68,7 @@ class ConditionalTransformSet : ConditionParentTransform(), TransformCustomItemV
     private val transforms = mutableStateListOf<ConditionalTransform>()
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
+        if (transforms.isEmpty()) return intermediate
         return transforms.fold(intermediate) { intermediateHeaders, transform ->
             transform.doTheConditionalHeaderThing(intermediateHeaders)
         }
@@ -76,6 +77,7 @@ class ConditionalTransformSet : ConditionParentTransform(), TransformCustomItemV
     override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
+        if (transforms.isEmpty()) return@coroutineScope intermediate
         return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
             async {
                 chunk.onEach { row ->

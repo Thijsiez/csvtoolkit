@@ -41,7 +41,9 @@ class JoinTransform : Transform() {
         withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
             append(joinOnFile?.name ?: "?")
         }
-        append("'s ")
+        append('\'')
+        if (joinOnFile?.name?.endsWith('s') == false) append('s')
+        append(' ')
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(joinOnColumn ?: "?")
         }

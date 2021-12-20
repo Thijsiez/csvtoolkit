@@ -73,8 +73,8 @@ abstract class Transform {
         //TODO grouping transform
         JOIN("Join", { JoinTransform() }, false),
         MERGE("Merge", { MergeTransform() }, false),
-        ORDER("Order", { OrderTransform() }, false),
         SELECT("Select", { SelectTransform() }, false),
-        SET("Set", { SetTransform(it) }, true)
+        SET("Set", { SetTransform(it) }, true),
+        SORT("Sort", { SortTransform() }, false)
     }
 }

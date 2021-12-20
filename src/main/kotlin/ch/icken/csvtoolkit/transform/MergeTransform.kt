@@ -17,6 +17,7 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,38 +43,41 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlin.math.max
 
-class MergeTransform : Transform() {
+class MergeTransform : Transform(), TransformCustomStateContent {
     override val description get() = buildAnnotatedString {
         append(mergeType.uiName)
         append(" ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            val numberOfColumns = mergeColumns.count { (_, merge) -> merge }
-            append(if (numberOfColumns == mergeColumns.size) "all" else numberOfColumns.toString())
+            append(if (numberOfColumnsSelected == mergeColumns.size) "all" else numberOfColumnsSelected.toString())
         }
         append(" of ")
         withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
             append(mergeWithFile?.name ?: "?")
         }
-        append("'s columns")
+        append('\'')
+        if (mergeWithFile?.name?.endsWith('s') == false) append('s')
+        append(" columns")
     }
 
     private var mergeType by mutableStateOf(Type.RANDOM)
     private var mergeWithFile: TabulatedFile? by mutableStateOf(null)
     private val mergeColumns = mutableStateListOf<Pair<String, Boolean>>()
+    private val numberOfColumnsSelected by derivedStateOf { mergeColumns.count { it.second } }
+    private val keepColumns by derivedStateOf { mergeColumns.filter { it.second }.map { it.first } }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
+        if (numberOfColumnsSelected == 0) return intermediate
         return intermediate.apply {
-            mergeColumns.forEach { (columnName, merge) ->
-                if (merge) add(columnName)
-            }
+            addAll(keepColumns)
         }
     }
 
     override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
+        if (numberOfColumnsSelected == 0) return@coroutineScope intermediate
+
         val mergeData = mergeWithFile?.letData { data ->
-            val keepColumns = mergeColumns.filter { (_, merge) -> merge }.map { (columnName, _) -> columnName }
             data.mapTo(ArrayList(max(data.size, intermediate.size))) {
                 it.filter { (columnName, _) -> columnName in keepColumns }
             }.apply {
@@ -105,10 +109,6 @@ class MergeTransform : Transform() {
         }
         if (mergeWithFileValue !in instance.files) {
             invalidMessage = "File to merge with not available"
-            return false
-        }
-        if (mergeColumns.all { (_, merge) -> !merge }) {
-            invalidMessage = "No columns selected to merge"
             return false
         }
         if (mergeColumns.any { (columnName, _) -> columnName !in mergeWithFileValue.headers }) {
@@ -202,6 +202,16 @@ class MergeTransform : Transform() {
                     )
                 }
             }
+        }
+    }
+
+    @Composable
+    override fun CustomStateContent(
+        instance: ToolkitInstance
+    ) {
+        when (numberOfColumnsSelected) {
+            0 -> TransformWarningIcon("Will be skipped")
+            else -> DefaultTransformStateContent(instance, this)
         }
     }
 

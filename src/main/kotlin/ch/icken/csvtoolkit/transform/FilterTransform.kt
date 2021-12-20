@@ -55,7 +55,8 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(conditions.size.toString())
         }
-        append(" conditions")
+        append(" condition")
+        if (conditions.size != 1) append('s')
     }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
@@ -63,6 +64,7 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
     override suspend fun doTheActualThing(
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
+        if (conditions.isEmpty()) return@coroutineScope intermediate
         return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
             async {
                 (chunk as MutableList).onEach { row, iterator ->
