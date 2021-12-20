@@ -45,6 +45,7 @@ import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransformView(
     instance: ToolkitInstance,
@@ -74,7 +75,7 @@ fun TransformView(
                     instance.isDoingTheThing -> {
                         CircularProgressIndicator(Modifier.padding(4.dp))
                     }
-                    instance.allowDoingTheThing.value -> {
+                    instance.allowDoingTheThing -> {
                         IconButton(
                             onClick = { instance.theThing() }
                         ) {
@@ -126,13 +127,21 @@ fun TransformView(
             state = reorderState.listState
         ) {
             items(instance.transforms, { it }) {
-                TransformItemView(
-                    instance = instance,
-                    transform = it,
-                    onEditTransform = onEditTransform,
-                    onEditCondition = onEditCondition,
-                    modifier = Modifier.reorderableItemModifier(reorderState, it)
-                )
+                TooltipArea(
+                    tooltip = {
+                        it.lastRunStats?.let { stats ->
+                            Tooltip(stats.text)
+                        }
+                    }
+                ) {
+                    TransformItemView(
+                        instance = instance,
+                        transform = it,
+                        onEditTransform = onEditTransform,
+                        onEditCondition = onEditCondition,
+                        modifier = Modifier.reorderableItemModifier(reorderState, it)
+                    )
+                }
             }
         }
     }

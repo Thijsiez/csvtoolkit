@@ -6,6 +6,11 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.firstDuplicateOrNull
 import ch.icken.csvtoolkit.transform.condition.Condition
@@ -19,6 +24,7 @@ abstract class Transform {
     abstract val description: AnnotatedString
 
     var invalidMessage by mutableStateOf(""); protected set
+    var lastRunStats: Statistics? by mutableStateOf(null); protected set
 
     abstract fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String>
     abstract suspend fun doTheActualThing(
@@ -47,6 +53,16 @@ abstract class Transform {
         )
     }
 
+    suspend fun <T> track(calculation: suspend Transform.() -> MutableList<T>): MutableList<T> {
+        val start = System.currentTimeMillis()
+        return this.calculation().also { output ->
+            lastRunStats = Statistics(
+                milliseconds = System.currentTimeMillis() - start,
+                rowCount = output.size
+            )
+        }
+    }
+
     abstract class ConditionParentTransform : Transform() {
         protected val conditions = mutableStateListOf<Condition>()
 
@@ -61,6 +77,27 @@ abstract class Transform {
             onHide: () -> Unit,
             onDelete: () -> Unit
         )
+    }
+
+    data class Statistics(
+        val milliseconds: Long,
+        val rowCount: Int
+    ) {
+        val text by lazy {
+            buildAnnotatedString {
+                withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
+                    append("Last run stats")
+                }
+                append("\nTime taken: ")
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(milliseconds.toString())
+                }
+                append("ms\nRow count: ")
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(rowCount.toString())
+                }
+            }
+        }
     }
 
     enum class Type(
