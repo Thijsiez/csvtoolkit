@@ -68,6 +68,7 @@ class AndCondition(
         Column(
             modifier = modifier
                 .combinedClickable(
+                    enabled = context.allowChanges,
                     onClick = { onEditCondition(this) }
                 )
                 .fillMaxWidth()

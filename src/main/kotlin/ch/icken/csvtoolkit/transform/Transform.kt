@@ -49,7 +49,8 @@ abstract class Transform {
 
     fun getContext(instance: ToolkitInstance): Condition.Context {
         return Condition.Context(
-            headers = instance.headersUpTo(this)
+            headers = instance.headersUpTo(this),
+            allowChanges = !instance.isDoingTheThing
         )
     }
 

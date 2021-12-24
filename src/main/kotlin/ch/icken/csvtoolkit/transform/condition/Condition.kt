@@ -36,7 +36,8 @@ abstract class Condition(
         fun remove(condition: Condition) = conditions.remove(condition)
     }
     data class Context(
-        val headers: List<String>
+        val headers: List<String>,
+        val allowChanges: Boolean
     )
 
     @Suppress("unused")

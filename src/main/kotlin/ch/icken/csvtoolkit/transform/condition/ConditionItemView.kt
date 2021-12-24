@@ -43,6 +43,7 @@ fun ConditionItemView(
         )
     } else {
         ConditionDefaultItemView(
+            context = context,
             condition = condition,
             onEditCondition = onEditCondition,
             modifier = modifier,
@@ -54,6 +55,7 @@ fun ConditionItemView(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConditionDefaultItemView(
+    context: Condition.Context,
     condition: Condition,
     onEditCondition: (Condition) -> Unit,
     modifier: Modifier,
@@ -61,6 +63,7 @@ fun ConditionDefaultItemView(
 ) = Row(
     modifier = modifier
         .combinedClickable(
+            enabled = context.allowChanges,
             onClick = { onEditCondition(condition) }
         )
         .fillMaxWidth()

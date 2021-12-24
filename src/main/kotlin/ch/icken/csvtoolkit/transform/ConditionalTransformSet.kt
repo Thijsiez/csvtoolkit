@@ -119,6 +119,7 @@ class ConditionalTransformSet : ConditionParentTransform(), TransformCustomItemV
         Column(
             modifier = modifier
                 .combinedClickable (
+                    enabled = !instance.isDoingTheThing,
                     onClick = { onEditTransform(this) }
                 )
                 .fillMaxWidth()

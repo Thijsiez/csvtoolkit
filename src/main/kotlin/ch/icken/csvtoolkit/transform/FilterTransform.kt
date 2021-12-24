@@ -96,6 +96,7 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
         Column(
             modifier = modifier
                 .combinedClickable(
+                    enabled = !instance.isDoingTheThing,
                     onClick = { onEditTransform(this) }
                 )
                 .fillMaxWidth()

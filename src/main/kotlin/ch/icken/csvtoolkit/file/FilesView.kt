@@ -54,7 +54,8 @@ fun FilesView(
                 style = MaterialTheme.typography.h6
             )
             IconButton(
-                onClick = onAddFile
+                onClick = onAddFile,
+                enabled = !instance.isDoingTheThing
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -83,6 +84,7 @@ private fun FilesItemView(
 ) = Row(
     modifier = Modifier
         .combinedClickable(
+            enabled = !instance.isDoingTheThing,
             onClick = onPreviewFile,
             onLongClick = { instance.baseFileOverride = file }
         )

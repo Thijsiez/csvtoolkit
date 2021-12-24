@@ -89,7 +89,7 @@ fun TransformView(
                 Box {
                     IconButton(
                         onClick = { expanded = true },
-                        enabled = instance.files.isNotEmpty()
+                        enabled = !instance.isDoingTheThing && instance.files.isNotEmpty()
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -205,6 +205,7 @@ private fun TransformDefaultItemView(
 ) = Row(
     modifier = modifier
         .combinedClickable(
+            enabled = !instance.isDoingTheThing,
             onClick = { onEditTransform(transform) }
         )
         .fillMaxWidth()
