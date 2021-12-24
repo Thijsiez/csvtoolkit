@@ -8,11 +8,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.rememberDialogState
+import ch.icken.csvtoolkit.isDown
 import ch.icken.csvtoolkit.ui.DialogContent
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun EditDialog(
     titleText: String,
@@ -29,13 +33,19 @@ fun EditDialog(
     }
 
     Dialog(
+        onCloseRequest = {
+            onHide()
+            isDialogShowing = false
+        },
         state = state,
         title = titleText,
         undecorated = true,
         resizable = false,
-        onCloseRequest = {
-            onHide()
-            isDialogShowing = false
+        onKeyEvent = {
+            it.isDown(Key.Escape) {
+                onHide()
+                isDialogShowing = false
+            }
         }
     ) {
         DialogContent(

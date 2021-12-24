@@ -10,7 +10,9 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.rememberDialogState
+import ch.icken.csvtoolkit.isDown
 import ch.icken.csvtoolkit.transform.condition.Condition
 
 data class Confirmation(
@@ -27,6 +30,7 @@ data class Confirmation(
     private val negative: Pair<String, () -> Unit> = "CANCEL" to {},
     private val content: @Composable BoxScope.() -> Unit
 ) {
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun Dialog(
         state: DialogState = rememberDialogState(
@@ -34,11 +38,14 @@ data class Confirmation(
         )
     ) {
         Dialog(
+            onCloseRequest = onHide,
             state = state,
             title = title,
             undecorated = true,
             resizable = false,
-            onCloseRequest = onHide
+            onKeyEvent = {
+                it.isDown(Key.Escape, onHide)
+            }
         ) {
             DialogContent(
                 confirmButton = {

@@ -22,7 +22,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -31,6 +33,7 @@ import androidx.compose.ui.window.AwtWindow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.file.TabulatedFile.Type
+import ch.icken.csvtoolkit.isDown
 import ch.icken.csvtoolkit.ui.DialogContent
 import ch.icken.csvtoolkit.ui.ListTable
 import ch.icken.csvtoolkit.ui.Spinner
@@ -42,6 +45,7 @@ import java.awt.dnd.DropTarget
 import java.awt.dnd.DropTargetDropEvent
 import java.io.File
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun FileAddDialog(
     onAddFile: (TabulatedFile) -> Unit,
@@ -63,13 +67,16 @@ fun FileAddDialog(
     }
 
     Dialog(
+        onCloseRequest = onHide,
         state = rememberDialogState(
             size = DpSize(960.dp, Dp.Unspecified)
         ),
         title = titleText,
         undecorated = true,
         resizable = false,
-        onCloseRequest = onHide
+        onKeyEvent = {
+            it.isDown(Key.Escape, onHide)
+        }
     ) {
         DialogContent(
             titleText = titleText,

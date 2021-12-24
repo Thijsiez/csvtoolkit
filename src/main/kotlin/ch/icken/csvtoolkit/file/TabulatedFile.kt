@@ -11,12 +11,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.rememberDialogState
+import ch.icken.csvtoolkit.isDown
 import ch.icken.csvtoolkit.ui.DialogContent
 import ch.icken.csvtoolkit.ui.ListTable
 import ch.icken.csvtoolkit.ui.MapTable
@@ -54,16 +57,20 @@ abstract class TabulatedFile(
         return if (this::data.isInitialized && state == State.LOADED) block(data) else null
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun Dialog(onHide: () -> Unit) {
         Dialog(
+            onCloseRequest = onHide,
             state = rememberDialogState(
                 size = DpSize(960.dp, Dp.Unspecified)
             ),
             title = name,
             undecorated = true,
             resizable = false,
-            onCloseRequest = onHide
+            onKeyEvent = {
+                it.isDown(Key.Escape, onHide)
+            }
         ) {
             DialogContent(
                 titleText = name,

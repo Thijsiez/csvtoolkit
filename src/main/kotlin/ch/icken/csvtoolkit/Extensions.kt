@@ -1,6 +1,11 @@
 package ch.icken.csvtoolkit
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 
 fun <E> List<E>.firstDuplicateOrNull(): E? {
     val set = mutableSetOf<E>()
@@ -32,3 +37,6 @@ inline fun <E> MutableList<E>.set(index: Int, newElement: (oldElement: E) -> E) 
 inline fun String.lowercaseIf(predicate: (String) -> Boolean): String {
     return if (predicate(this)) lowercase() else this
 }
+
+fun KeyEvent.isDown(checkKey: Key, action: () -> Unit) =
+    if (type == KeyEventType.KeyDown && key == checkKey) { action(); true } else false
