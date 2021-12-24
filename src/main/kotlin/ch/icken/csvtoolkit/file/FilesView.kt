@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.file.TabulatedFile.State
@@ -94,8 +95,10 @@ private fun FilesItemView(
     Text(
         text = file.name,
         modifier = Modifier.weight(1f),
-        style = MaterialTheme.typography.body1,
-        fontWeight = if (file == instance.baseFile.value) FontWeight.Bold else FontWeight.Normal
+        fontWeight = if (file == instance.baseFile.value) FontWeight.Bold else FontWeight.Normal,
+        overflow = TextOverflow.Ellipsis,
+        maxLines = 1,
+        style = MaterialTheme.typography.body1
     )
     Row(
         modifier = Modifier.requiredSize(48.dp),

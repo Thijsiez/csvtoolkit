@@ -136,12 +136,11 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
                 Text("Set")
                 Spinner(
                     items = headers,
-                    itemTransform = { Text(it) },
+                    selectedItem = { column },
                     onItemSelected = { column = it },
+                    itemTransform = { it ?: "-" },
                     label = "Reference Column"
-                ) {
-                    Text(column ?: "-")
-                }
+                )
                 Text("to")
                 OutlinedTextField(
                     value = setValue,

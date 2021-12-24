@@ -86,12 +86,11 @@ class RegexCondition(
             ) {
                 Spinner(
                     items = context.headers,
-                    itemTransform = { Text(it) },
+                    selectedItem = { column },
                     onItemSelected = { column = it },
+                    itemTransform = { it ?: "-" },
                     label = "Reference Column"
-                ) {
-                    Text(column ?: "-")
-                }
+                )
                 Text("matches")
                 OutlinedTextField(
                     value = compareTo,

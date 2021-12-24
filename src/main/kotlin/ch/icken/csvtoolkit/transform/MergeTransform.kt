@@ -143,25 +143,25 @@ class MergeTransform : Transform(), TransformCustomStateContent {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Spinner(
-                        items = Type.values().toList(),
-                        itemTransform = { Text(it.uiName) },
+                        items = Type.values().asList(),
+                        selectedItem = { mergeType },
                         onItemSelected = { mergeType = it },
+                        itemTransform = { it.uiName },
                         label = "Merge Type"
-                    ) {
-                        Text(mergeType.uiName)
-                    }
+                    )
                     Spinner(
                         items = instance.files,
-                        itemTransform = { Text(it.name) },
+                        selectedItem = { mergeWithFile },
                         onItemSelected = { file ->
                             mergeWithFile = file
                             mergeColumns.clear()
-                            mergeColumns.addAll(file.headers.map { it to true })
+                            if (file != null) {
+                                mergeColumns.addAll(file.headers.map { it to true })
+                            }
                         },
+                        itemTransform = { it?.name ?: "-" },
                         label = "Merge File"
-                    ) {
-                        Text(mergeWithFile?.name ?: "-")
-                    }
+                    )
                     Text(
                         text = "Data will be merged more than once " +
                                 "if not enough unique rows are available, round-robin-style",

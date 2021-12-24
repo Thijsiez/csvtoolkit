@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.CircularProgressIndicator
@@ -99,26 +99,25 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
                     onClick = { onEditTransform(this) }
                 )
                 .fillMaxWidth()
-                .padding(start = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(start = 16.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth()
-                    .height(48.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = description,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
+                        .padding(vertical = 8.dp),
                     style = MaterialTheme.typography.body1
                 )
                 if (this@FilterTransform == instance.currentlyProcessingTransform) {
                     CircularProgressIndicator(Modifier.padding(4.dp))
                 } else {
                     Row(
-                        modifier = Modifier.requiredSize(48.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        modifier = Modifier.requiredHeight(48.dp)
+                            .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         when {
@@ -132,6 +131,7 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
             Divider()
             Text(
                 text = "Conditions",
+                modifier = Modifier.padding(vertical = 6.dp),
                 style = MaterialTheme.typography.caption
             )
             if (conditions.isEmpty()) {
@@ -171,7 +171,7 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
             onHide = onHide,
             onDelete = onDelete,
             state = rememberDialogState(
-                size = DpSize(480.dp, Dp.Unspecified)
+                size = DpSize(360.dp, Dp.Unspecified)
             )
         ) {
             Column(

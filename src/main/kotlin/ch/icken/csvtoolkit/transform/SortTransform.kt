@@ -94,12 +94,11 @@ class SortTransform : Transform() {
                 Text("Sort by")
                 Spinner(
                     items = instance.headersUpTo(this@SortTransform),
-                    itemTransform = { Text(it) },
+                    selectedItem = { column },
                     onItemSelected = { column = it },
+                    itemTransform = { it ?: "-" },
                     label = "Reference Column"
-                ) {
-                    Text(column ?: "-")
-                }
+                )
                 TooltipArea(
                     tooltip = { Tooltip(if (ascending) "Ascending" else "Descending") }
                 ) {

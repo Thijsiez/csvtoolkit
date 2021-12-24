@@ -107,20 +107,18 @@ class TextCondition(
                 ) {
                     Spinner(
                         items = context.headers,
-                        itemTransform = { Text(it) },
+                        selectedItem = { column },
                         onItemSelected = { column = it },
+                        itemTransform = { it ?: "-" },
                         label = "Reference Column"
-                    ) {
-                        Text(column ?: "-")
-                    }
+                    )
                     Spinner(
-                        items = Type.values().toList(),
-                        itemTransform = { Text(it.uiName) },
+                        items = Type.values().asList(),
+                        selectedItem = { compareType },
                         onItemSelected = { compareType = it },
+                        itemTransform = { it.uiName },
                         label = "Comparison Type"
-                    ) {
-                        Text(compareType.uiName)
-                    }
+                    )
                     OutlinedTextField(
                         value = compareTo,
                         onValueChange = { compareTo = it },

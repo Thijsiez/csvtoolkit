@@ -166,20 +166,18 @@ class JoinTransform : Transform() {
                     ) {
                         Spinner(
                             items = instance.headersUpTo(this@JoinTransform),
-                            itemTransform = { Text(it) },
+                            selectedItem = { column },
                             onItemSelected = { column = it },
+                            itemTransform = { it ?: "-" },
                             label = "Reference Column"
-                        ) {
-                            Text(column ?: "-")
-                        }
+                        )
                         Spinner(
-                            items = Type.values().toList(),
-                            itemTransform = { Text(it.uiName) },
+                            items = Type.values().asList(),
+                            selectedItem = { joinType },
                             onItemSelected = { joinType = it },
+                            itemTransform = { it.uiName },
                             label = "Join Type"
-                        ) {
-                            Text(joinType.uiName)
-                        }
+                        )
                     }
                     Text("ON")
                     Column(
@@ -187,21 +185,18 @@ class JoinTransform : Transform() {
                     ) {
                         Spinner(
                             items = instance.files,
-                            itemTransform = { Text(it.name) },
+                            selectedItem = { joinOnFile },
                             onItemSelected = { joinOnFile = it },
+                            itemTransform = { it?.name ?: "-" },
                             label = "Join File"
-                        ) {
-                            Text(joinOnFile?.name ?: "-")
-                        }
+                        )
                         Spinner(
                             items = joinOnFile?.headers ?: emptyList(),
-                            itemTransform = { Text(it) },
+                            selectedItem = { joinOnColumn },
                             onItemSelected = { joinOnColumn = it },
-                            label = "Join Column",
-                            enabled = joinOnFile != null
-                        ) {
-                            Text(joinOnColumn ?: "-")
-                        }
+                            itemTransform = { it ?: "-" },
+                            label = "Join Column"
+                        )
                     }
                 }
                 Row(

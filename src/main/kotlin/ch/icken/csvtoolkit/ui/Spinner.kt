@@ -36,15 +36,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun <T> Spinner(
     items: List<T>,
-    itemTransform: @Composable (T) -> Unit,
+    selectedItem: () -> T,
     onItemSelected: ((T) -> Unit)?,
+    itemTransform: (T) -> String,
     label: String? = null,
+    itemView: @Composable (String) -> Unit = { Text(it, overflow = TextOverflow.Ellipsis, maxLines = 1) },
+    dropdownItemView: @Composable (String) -> Unit = itemView,
     modifier: Modifier = Modifier.requiredWidth(180.dp),
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
@@ -52,8 +56,7 @@ fun <T> Spinner(
     shape: Shape = MaterialTheme.shapes.small,
     border: BorderStroke? = null,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
-    contentPadding: PaddingValues = PaddingValues(16.dp, 12.dp, 12.dp, 12.dp),
-    content: @Composable () -> Unit
+    contentPadding: PaddingValues = PaddingValues(16.dp, 12.dp, 12.dp, 12.dp)
 ) {
     val contentColor by colors.contentColor(enabled)
     var expanded by remember { mutableStateOf(false) }
@@ -88,7 +91,7 @@ fun <T> Spinner(
                             style = MaterialTheme.typography.caption
                         )
                     }
-                    content()
+                    itemView(itemTransform(selectedItem()))
                 }
                 Spacer(Modifier.width(8.dp))
                 Icon(
@@ -109,7 +112,7 @@ fun <T> Spinner(
                         expanded = false
                     }
                 ) {
-                    itemTransform(it)
+                    dropdownItemView(itemTransform(it))
                 }
             }
         }

@@ -7,9 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -65,19 +64,19 @@ fun ConditionDefaultItemView(
             onClick = { onEditCondition(condition) }
         )
         .fillMaxWidth()
-        .height(48.dp)
         .padding(start = 16.dp),
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
 ) {
     Text(
         text = condition.description,
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(1f)
+            .padding(vertical = 8.dp),
         style = MaterialTheme.typography.body1
     )
     Row(
-        modifier = Modifier.requiredSize(48.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier.requiredHeight(48.dp)
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = stateContent
     )

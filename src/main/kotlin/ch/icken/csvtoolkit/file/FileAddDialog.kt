@@ -120,22 +120,20 @@ fun FileAddDialog(
                     )
                     Spinner(
                         items = Type.values().asList(),
-                        itemTransform = { Text(it.uiName) },
+                        selectedItem = { fileType },
                         onItemSelected = { fileType = it },
+                        itemTransform = { it.uiName },
                         label = "File Type"
-                    ) {
-                        Text(fileType.uiName)
-                    }
+                    )
                     when (fileType) {
                         Type.CSV -> {
                             Spinner(
                                 items = CsvFile.Delimiter.values().asList(),
-                                itemTransform = { Text(it.uiName) },
+                                selectedItem = { fileTypeCsvDelimiter },
                                 onItemSelected = { fileTypeCsvDelimiter = it },
+                                itemTransform = { it.uiName },
                                 label = "Delimiter"
-                            ) {
-                                Text(fileTypeCsvDelimiter.uiName)
-                            }
+                            )
                         }
                     }
                 }
