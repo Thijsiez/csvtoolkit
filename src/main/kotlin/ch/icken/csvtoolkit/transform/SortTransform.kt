@@ -26,11 +26,18 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.transform.SortTransform.SortSerializer
 import ch.icken.csvtoolkit.ui.Spinner
 import ch.icken.csvtoolkit.ui.Tooltip
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
-class SortTransform : Transform() {
+@Serializable(with = SortSerializer::class)
+class SortTransform() : Transform() {
     override val description get() = buildAnnotatedString {
         append("Sort by ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
@@ -38,9 +45,15 @@ class SortTransform : Transform() {
         }
         append(if (ascending) ", ascending" else ", descending")
     }
+    override val surrogate get() = SortSurrogate(column, ascending)
 
     private var column: String? by mutableStateOf(null)
     private var ascending by mutableStateOf(true)
+
+    constructor(surrogate: SortSurrogate) : this() {
+        column = surrogate.column
+        ascending = surrogate.ascending
+    }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
 
@@ -113,6 +126,24 @@ class SortTransform : Transform() {
                     }
                 }
             }
+        }
+    }
+
+    @Serializable
+    @SerialName("sort")
+    class SortSurrogate(
+        val column: String?,
+        val ascending: Boolean
+    ) : TransformSurrogate
+    object SortSerializer : KSerializer<SortTransform> {
+        override val descriptor = SortSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: SortTransform) {
+            encoder.encodeSerializableValue(SortSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): SortTransform {
+            return SortTransform(decoder.decodeSerializableValue(SortSurrogate.serializer()))
         }
     }
 }

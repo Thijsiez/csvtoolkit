@@ -28,11 +28,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.set
+import ch.icken.csvtoolkit.transform.SelectTransform.SelectSerializer
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
-class SelectTransform : Transform(), TransformCustomStateContent {
+@Serializable(with = SelectSerializer::class)
+class SelectTransform() : Transform(), TransformCustomStateContent {
     override val description get() = buildAnnotatedString {
         when {
             numberOfColumnsSelected == selectColumns.size -> append("Keep all")
@@ -53,10 +60,16 @@ class SelectTransform : Transform(), TransformCustomStateContent {
         append(" column")
         if (numberOfColumnsSelected != 1) append('s')
     }
+    override val surrogate get() = SelectSurrogate(selectColumns)
 
-    private val selectColumns = mutableStateListOf<Pair<String, Boolean>>()
-    private val numberOfColumnsSelected by derivedStateOf { selectColumns.count { it.second } }
-    private val keepColumns by derivedStateOf { selectColumns.filter { it.second }.map { it.first } }
+    private val selectColumns = mutableStateListOf<Select>()
+    private val numberOfColumnsSelected by derivedStateOf { selectColumns.count { it.select } }
+    private val keepColumns by derivedStateOf { selectColumns.filter { it.select }.map { it.columnName } }
+
+    constructor(surrogate: SelectSurrogate) : this() {
+        selectColumns.clear()
+        selectColumns.addAll(surrogate.selectColumns)
+    }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
         if (numberOfColumnsSelected == selectColumns.size) return intermediate
@@ -82,7 +95,7 @@ class SelectTransform : Transform(), TransformCustomStateContent {
 
     override fun isValid(instance: ToolkitInstance): Boolean {
         val incomingColumnNames = instance.headersUpTo(this)
-        val columnNames = selectColumns.map { it.first }
+        val columnNames = selectColumns.map { it.columnName }
 
         //maybe update columns here and not report these two errors
         //but I'd rather have the user give this a look and check themselves
@@ -111,10 +124,10 @@ class SelectTransform : Transform(), TransformCustomStateContent {
             onHide = onHide,
             onDelete = onDelete,
             onOpen = {
-                val retain = selectColumns.toMap()
+                val retain = selectColumns.associate { it.columnName to it.select }
                 selectColumns.clear()
                 instance.headersUpTo(this).forEach { columnName ->
-                    selectColumns.add(columnName to (retain[columnName] ?: true))
+                    selectColumns.add(Select(columnName, retain[columnName] ?: true))
                 }
             },
             state = rememberDialogState(
@@ -138,7 +151,7 @@ class SelectTransform : Transform(), TransformCustomStateContent {
                             Checkbox(
                                 checked = checked,
                                 onCheckedChange = { isChecked ->
-                                    selectColumns.set(index) { it.copy(second = isChecked) }
+                                    selectColumns.set(index) { it.copy(select = isChecked) }
                                 }
                             )
                             Text(
@@ -164,6 +177,29 @@ class SelectTransform : Transform(), TransformCustomStateContent {
             selectColumns.size -> TransformWarningIcon("Will be skipped")
             0 -> TransformWarningIcon("No data will pass this transform")
             else -> DefaultTransformStateContent(instance, this)
+        }
+    }
+
+    @Serializable
+    data class Select(
+        val columnName: String,
+        val select: Boolean
+    )
+
+    @Serializable
+    @SerialName("select")
+    class SelectSurrogate(
+        val selectColumns: List<Select>
+    ) : TransformSurrogate
+    object SelectSerializer : KSerializer<SelectTransform> {
+        override val descriptor = SelectSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: SelectTransform) {
+            encoder.encodeSerializableValue(SelectSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): SelectTransform {
+            return SelectTransform(decoder.decodeSerializableValue(SelectSurrogate.serializer()))
         }
     }
 }

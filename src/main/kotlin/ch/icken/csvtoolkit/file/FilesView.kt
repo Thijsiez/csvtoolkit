@@ -97,7 +97,7 @@ private fun FilesItemView(
     Text(
         text = file.name,
         modifier = Modifier.weight(1f),
-        fontWeight = if (file == instance.baseFile.value) FontWeight.Bold else FontWeight.Normal,
+        fontWeight = if (file == instance.baseFile) FontWeight.Bold else FontWeight.Normal,
         overflow = TextOverflow.Ellipsis,
         maxLines = 1,
         style = MaterialTheme.typography.body1

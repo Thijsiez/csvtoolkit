@@ -24,12 +24,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
+import ch.icken.csvtoolkit.transform.Transform.FosterParent
+import ch.icken.csvtoolkit.transform.condition.RegexCondition.RegexSerializer
 import ch.icken.csvtoolkit.ui.Spinner
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
+@Serializable(with = RegexSerializer::class)
 class RegexCondition(
-    parentTransform: ConditionParentTransform,
-    parentCondition: ConditionParent?
-) : Condition(parentTransform, parentCondition) {
+    override val parentTransform: ConditionParentTransform,
+    override val parentCondition: ConditionParent?
+) : Condition() {
     override val description get() = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column ?: "?")
@@ -39,15 +47,21 @@ class RegexCondition(
             append(compareTo.text)
         }
     }
+    override val surrogate get() = RegexSurrogate(column, compareTo.text)
 
     private var column: String? by mutableStateOf(null)
     private var compareTo by mutableStateOf(TextFieldValue(""))
-    private val compareRegex = derivedStateOf { Regex(compareTo.text) }
+    private val compareRegex by derivedStateOf { Regex(compareTo.text) }
+
+    constructor(surrogate: RegexSurrogate) : this(FosterParent, null) {
+        column = surrogate.column
+        compareTo = TextFieldValue(surrogate.compareTo)
+    }
 
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column ?: return false
         val referenceValue = row[columnName] ?: return false
-        return referenceValue.matches(compareRegex.value)
+        return referenceValue.matches(compareRegex)
     }
 
     override fun isValid(context: Context): Boolean {
@@ -101,6 +115,30 @@ class RegexCondition(
                     singleLine = true
                 )
             }
+        }
+    }
+
+    @Serializable
+    @SerialName("regex")
+    class RegexSurrogate(
+        val column: String?,
+        val compareTo: String
+    ) : ConditionSurrogate
+    object RegexSerializer : KSerializer<RegexCondition> {
+        override val descriptor = RegexSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: RegexCondition) {
+            encoder.encodeSerializableValue(RegexSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): RegexCondition {
+            return RegexCondition(decoder.decodeSerializableValue(RegexSurrogate.serializer()))
+        }
+    }
+    override fun adopt(parentTransform: ConditionParentTransform, parentCondition: ConditionParent?): Condition {
+        return RegexCondition(parentTransform, parentCondition).also { copy ->
+            copy.column = column
+            copy.compareTo = compareTo
         }
     }
 }

@@ -107,7 +107,7 @@ private const val DefaultColumnWidth = 112f
 private fun <C> Table(
     headers: List<Pair<String, MutableState<Float>>>,
     data: List<C>,
-    rowHoverColor: Color = MaterialTheme.colors.onSurface.copy(alpha = .06f),
+    rowHoverColor: Color = MaterialTheme.colors.onSurface.copy(alpha = .04f),
     row: @Composable RowScope.(row: Int, rowData: C) -> Unit
 ) = Box {
     val horizontalState = rememberLazyListState()

@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -14,7 +15,10 @@ import androidx.compose.ui.text.withStyle
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.firstDuplicateOrNull
 import ch.icken.csvtoolkit.transform.condition.Condition
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
+@Serializable
 abstract class Transform {
     companion object {
         private val NumberOfLogicalCores = Runtime.getRuntime().availableProcessors()
@@ -22,6 +26,7 @@ abstract class Transform {
     }
 
     abstract val description: AnnotatedString
+    abstract val surrogate: TransformSurrogate
 
     var invalidMessage by mutableStateOf(""); protected set
     var lastRunStats: Statistics? by mutableStateOf(null); protected set
@@ -47,6 +52,8 @@ abstract class Transform {
         onDelete: () -> Unit
     )
 
+    open fun postDeserialization(instance: ToolkitInstance) {}
+
     fun getContext(instance: ToolkitInstance): Condition.Context {
         return Condition.Context(
             headers = instance.headersUpTo(this),
@@ -64,12 +71,21 @@ abstract class Transform {
         }
     }
 
+    @Serializable
     abstract class ConditionParentTransform : Transform() {
+        abstract override val surrogate: ConditionParentTransformSurrogate
+
+        @Transient
         protected val conditions = mutableStateListOf<Condition>()
 
-        fun remove(condition: Condition) = conditions.remove(condition)
+        open fun remove(condition: Condition) = conditions.remove(condition)
+
+        interface ConditionParentTransformSurrogate : TransformSurrogate {
+            val conditions: List<Condition>
+        }
     }
-    abstract class ConditionalTransform(val parent: Transform?) : Transform() {
+    @Serializable
+    abstract class ConditionalTransform(@Transient val parent: Transform? = null) : Transform() {
         abstract fun doTheConditionalHeaderThing(intermediate: MutableList<String>): MutableList<String>
         abstract fun doTheConditionalThing(intermediateRow: MutableMap<String, String>): MutableMap<String, String>
         abstract fun isValidConditional(context: Condition.Context): Boolean
@@ -78,6 +94,7 @@ abstract class Transform {
             onHide: () -> Unit,
             onDelete: () -> Unit
         )
+        abstract fun adopt(parent: Transform): ConditionalTransform
     }
 
     data class Statistics(
@@ -114,5 +131,32 @@ abstract class Transform {
         SELECT("Select", { SelectTransform() }, false),
         SET("Set", { SetTransform(it) }, true),
         SORT("Sort", { SortTransform() }, false)
+    }
+
+    interface TransformSurrogate
+    object FosterParent : ConditionParentTransform() {
+        override val description = buildAnnotatedString {
+            withStyle(style = SpanStyle(Color.Red)) {
+                append("You really shouldn't be seeing this :/")
+            }
+        }
+        override val surrogate: ConditionParentTransformSurrogate
+            get() = throw IllegalStateException()
+
+        override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> =
+            throw IllegalStateException()
+
+        override suspend fun doTheActualThing(
+            intermediate: MutableList<MutableMap<String, String>>
+        ): MutableList<MutableMap<String, String>> = throw IllegalStateException()
+
+        override fun isValid(instance: ToolkitInstance) = false
+
+        @Composable
+        override fun Dialog(instance: ToolkitInstance, onHide: () -> Unit, onDelete: () -> Unit) {
+            throw IllegalStateException()
+        }
+
+        override fun remove(condition: Condition) = false
     }
 }

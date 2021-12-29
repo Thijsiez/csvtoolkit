@@ -81,7 +81,7 @@ fun DeleteConditionConfirmation(
     title: String = "Delete condition?",
     onDelete: () -> Unit = {
         if (condition.parentCondition != null) {
-            condition.parentCondition.remove(condition)
+            condition.parentCondition?.apply { remove(condition) }
         } else {
             condition.parentTransform.remove(condition)
         }

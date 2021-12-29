@@ -22,13 +22,20 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.transform.SetTransform.SetSerializer
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Spinner
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
+@Serializable(with = SetSerializer::class)
 class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
     override val description get() = buildAnnotatedString {
         append("Set ")
@@ -40,9 +47,15 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
             append(setValue.text)
         }
     }
+    override val surrogate get() = SetSurrogate(column, setValue.text)
 
     private var column: String? by mutableStateOf(null)
     private var setValue by mutableStateOf(TextFieldValue(""))
+
+    constructor(surrogate: SetSurrogate) : this(null) {
+        column = surrogate.column
+        setValue = TextFieldValue(surrogate.value)
+    }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
 
@@ -150,6 +163,30 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
                     singleLine = true
                 )
             }
+        }
+    }
+
+    @Serializable
+    @SerialName("set")
+    class SetSurrogate(
+        val column: String?,
+        val value: String
+    ) : TransformSurrogate
+    object SetSerializer : KSerializer<SetTransform> {
+        override val descriptor = SetSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: SetTransform) {
+            encoder.encodeSerializableValue(SetSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): SetTransform {
+            return SetTransform(decoder.decodeSerializableValue(SetSurrogate.serializer()))
+        }
+    }
+    override fun adopt(parent: Transform): ConditionalTransform {
+        return SetTransform(parent).also { copy ->
+            copy.column = column
+            copy.setValue = setValue
         }
     }
 }

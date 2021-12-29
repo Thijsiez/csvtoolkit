@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.onEach
+import ch.icken.csvtoolkit.transform.FilterTransform.FilterSerializer
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.ConditionItemView
@@ -45,11 +46,17 @@ import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
 
-class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
+@Serializable(with = FilterSerializer::class)
+class FilterTransform() : ConditionParentTransform(), TransformCustomItemView {
     override val description get() = buildAnnotatedString {
         append("Filter on ")
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
@@ -57,6 +64,11 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
         }
         append(" condition")
         if (conditions.size != 1) append('s')
+    }
+    override val surrogate get() = FilterSurrogate(conditions)
+
+    constructor(surrogate: FilterSurrogate) : this() {
+        conditions.addAll(surrogate.conditions.map { it.adopt(this, null) })
     }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
@@ -243,5 +255,22 @@ class FilterTransform : ConditionParentTransform(), TransformCustomItemView {
             )
         }
         showConfirmationDialogFor?.Dialog()
+    }
+
+    @Serializable
+    @SerialName("filter")
+    class FilterSurrogate(
+        override val conditions: List<Condition>
+    ) : ConditionParentTransformSurrogate
+    object FilterSerializer : KSerializer<FilterTransform> {
+        override val descriptor = FilterSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: FilterTransform) {
+            encoder.encodeSerializableValue(FilterSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): FilterTransform {
+            return FilterTransform(decoder.decodeSerializableValue(FilterSurrogate.serializer()))
+        }
     }
 }

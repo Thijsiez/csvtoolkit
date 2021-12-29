@@ -28,12 +28,20 @@ import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.lowercaseIf
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
+import ch.icken.csvtoolkit.transform.Transform.FosterParent
+import ch.icken.csvtoolkit.transform.condition.TextCondition.TextSerializer
 import ch.icken.csvtoolkit.ui.Spinner
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
+@Serializable(with = TextSerializer::class)
 class TextCondition(
-    parentTransform: ConditionParentTransform,
-    parentCondition: ConditionParent?
-) : Condition(parentTransform, parentCondition) {
+    override val parentTransform: ConditionParentTransform,
+    override val parentCondition: ConditionParent?
+) : Condition() {
     override val description get() = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column ?: "?")
@@ -47,23 +55,30 @@ class TextCondition(
             append(compareTo.text)
         }
     }
+    override val surrogate get() = TextSurrogate(column, compareType, compareTo.text)
 
     private var column: String? by mutableStateOf(null)
     private var compareType by mutableStateOf(Type.EQ)
     private var compareTo by mutableStateOf(TextFieldValue(""))
-    private val compareText = derivedStateOf { compareTo.text.lowercaseIf { caseInsensitive } }
+    private val compareText by derivedStateOf { compareTo.text.lowercaseIf { caseInsensitive } }
     private var caseInsensitive by mutableStateOf(false)
+
+    constructor(surrogate: TextSurrogate) : this(FosterParent, null) {
+        column = surrogate.column
+        compareType = surrogate.compareType
+        compareTo = TextFieldValue(surrogate.compareTo)
+    }
 
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column ?: return false
         val referenceText = row[columnName]?.lowercaseIf { caseInsensitive } ?: return false
         return when (compareType) {
-            Type.EQ -> referenceText == compareText.value
-            Type.NEQ -> referenceText != compareText.value
-            Type.SW -> referenceText.startsWith(compareText.value)
-            Type.EW -> referenceText.endsWith(compareText.value)
-            Type.C -> referenceText.contains(compareText.value)
-            Type.NC -> !referenceText.contains(compareText.value)
+            Type.EQ -> referenceText == compareText
+            Type.NEQ -> referenceText != compareText
+            Type.SW -> referenceText.startsWith(compareText)
+            Type.EW -> referenceText.endsWith(compareText)
+            Type.C -> referenceText.contains(compareText)
+            Type.NC -> !referenceText.contains(compareText)
         }
     }
 
@@ -143,7 +158,7 @@ class TextCondition(
         }
     }
 
-    private enum class Type(
+    enum class Type(
         val uiName: String
     ) {
         EQ("Is equal to"),
@@ -152,5 +167,31 @@ class TextCondition(
         EW("Ends with"),
         C("Contains"),
         NC("Does not contain")
+    }
+
+    @Serializable
+    @SerialName("text")
+    class TextSurrogate(
+        val column: String?,
+        val compareType: Type,
+        val compareTo: String
+    ) : ConditionSurrogate
+    object TextSerializer : KSerializer<TextCondition> {
+        override val descriptor = TextSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: TextCondition) {
+            encoder.encodeSerializableValue(TextSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): TextCondition {
+            return TextCondition(decoder.decodeSerializableValue(TextSurrogate.serializer()))
+        }
+    }
+    override fun adopt(parentTransform: ConditionParentTransform, parentCondition: ConditionParent?): Condition {
+        return TextCondition(parentTransform, parentCondition).also { copy ->
+            copy.column = column
+            copy.compareType = compareType
+            copy.compareTo = compareTo
+        }
     }
 }

@@ -32,20 +32,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
+import ch.icken.csvtoolkit.transform.Transform.FosterParent
 import ch.icken.csvtoolkit.transform.condition.Condition.ConditionParent
+import ch.icken.csvtoolkit.transform.condition.OrCondition.OrSerializer
 import ch.icken.csvtoolkit.ui.Confirmation
 import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
 import ch.icken.csvtoolkit.ui.reorderableItemModifier
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import org.burnoutcrew.reorderable.move
 import org.burnoutcrew.reorderable.rememberReorderState
 import org.burnoutcrew.reorderable.reorderable
 
+@Serializable(with = OrSerializer::class)
 class OrCondition(
-    parentTransform: ConditionParentTransform,
-    parentCondition: ConditionParent?
-) : ConditionParent(parentTransform, parentCondition), ConditionCustomItemView {
+    override val parentTransform: ConditionParentTransform,
+    override val parentCondition: ConditionParent?
+) : ConditionParent(), ConditionCustomItemView {
     override val description get() = buildAnnotatedString {
         append("At least one of the following")
+    }
+    override val surrogate get() = OrSurrogate(conditions)
+
+    constructor(surrogate: OrSurrogate) : this(FosterParent, null) {
+        conditions.addAll(surrogate.conditions)
     }
 
     override fun check(row: Map<String, String>) = conditions.any { it.check(row) }
@@ -201,5 +214,27 @@ class OrCondition(
             )
         }
         showConfirmationDialogFor?.Dialog()
+    }
+
+    @Serializable
+    @SerialName("or")
+    class OrSurrogate(
+        override val conditions: List<Condition>
+    ) : ConditionParentSurrogate
+    object OrSerializer : KSerializer<OrCondition> {
+        override val descriptor = OrSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: OrCondition) {
+            encoder.encodeSerializableValue(OrSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): OrCondition {
+            return OrCondition(decoder.decodeSerializableValue(OrSurrogate.serializer()))
+        }
+    }
+    override fun adopt(parentTransform: ConditionParentTransform, parentCondition: ConditionParent?): Condition {
+        return OrCondition(parentTransform, parentCondition).also { copy ->
+            copy.conditions.addAll(conditions.map { it.adopt(parentTransform, this) })
+        }
     }
 }

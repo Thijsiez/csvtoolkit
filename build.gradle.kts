@@ -3,8 +3,9 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.5.31"
-    id("org.jetbrains.compose") version "1.0.0"
+    kotlin("jvm") version "1.6.10"
+    id("org.jetbrains.compose") version "1.0.1"
+    kotlin("plugin.serialization") version "1.6.10"
 }
 
 repositories {
@@ -19,6 +20,7 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:1.7.32")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.2.0")
     implementation("org.burnoutcrew.composereorderable:reorderable:0.7.4")
+    implementation("com.charleskorn.kaml:kaml:0.38.0")
 }
 
 tasks.withType<KotlinCompile> {
@@ -33,9 +35,19 @@ compose.desktop {
     application {
         mainClass = "ch.icken.csvtoolkit.MainKt"
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Pkg, TargetFormat.Msi, TargetFormat.Deb)
+
             packageName = "csvtoolkit"
             packageVersion = "1.0.0"
+            description = "Manipulate CSV files as if they are tables in a relational database :)"
+
+            macOS {
+                bundleID = "ch.icken.csvtoolkit"
+            }
+            windows {
+                upgradeUuid = "DDE4599E-E34C-4206-B7F2-74DBEFFFAA10"
+                menu = true
+            }
         }
     }
 }

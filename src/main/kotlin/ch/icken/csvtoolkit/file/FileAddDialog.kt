@@ -56,8 +56,8 @@ fun FileAddDialog(
     var fileName by remember { mutableStateOf(TextFieldValue("")) }
     var fileType by remember { mutableStateOf(Type.CSV) }
     var fileTypeCsvDelimiter by remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
-    val fileIsValid = derivedStateOf { File(fileName.text).run { exists() && isFile } }
-    val file = derivedStateOf {
+    val fileIsValid by derivedStateOf { File(fileName.text).run { exists() && isFile } }
+    val file by derivedStateOf {
         when (fileType) {
             Type.CSV -> CsvFile(
                 path = fileName.text,
@@ -84,9 +84,9 @@ fun FileAddDialog(
                 TextButton(
                     onClick = {
                         onHide()
-                        onAddFile(file.value)
+                        onAddFile(file)
                     },
-                    enabled = fileIsValid.value
+                    enabled = fileIsValid
                 ) {
                     Text("ADD")
                 }
@@ -147,8 +147,8 @@ fun FileAddDialog(
                 Card(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    if (fileIsValid.value) {
-                        ListTable(file.value.preview)
+                    if (fileIsValid) {
+                        ListTable(file.preview)
                     }
                 }
             }
@@ -171,22 +171,20 @@ fun FileAddDialog(
     }
 
     if (showOpenFileDialog) {
-        OpenFileDialog(
-            onFileSelected = { selectedFile ->
-                showOpenFileDialog = false
-                fileName = TextFieldValue(selectedFile.absolutePath)
-                when (selectedFile.extension) {
-                    in Type.CSV.extensions -> fileType = Type.CSV
-                }
+        OpenTabulatedFileDialog { selectedFile ->
+            showOpenFileDialog = false
+            fileName = TextFieldValue(selectedFile.absolutePath)
+            when (selectedFile.extension) {
+                in Type.CSV.extensions -> fileType = Type.CSV
             }
-        )
+        }
     }
 }
 
 @Composable
-private fun OpenFileDialog(
-    onFileSelected: (selectedFile: File) -> Unit,
-    parent: Frame? = null
+private fun OpenTabulatedFileDialog(
+    parent: Frame? = null,
+    onFileSelected: (selectedFile: File) -> Unit
 ) = AwtWindow(
     create = {
         object : FileDialog(parent, "Open File", LOAD) {
@@ -197,11 +195,13 @@ private fun OpenFileDialog(
                 }
             }
         }.apply {
+            //This doesn't work in Windows
+            val extensions = Type.values().flatMap {
+                it.extensions.asList()
+            }
             setFilenameFilter { _, fileName ->
-                Type.values().any { fileType ->
-                    fileType.extensions.any {
-                        fileName.endsWith(it)
-                    }
+                extensions.any {
+                    fileName.endsWith(".$it")
                 }
             }
         }

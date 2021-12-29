@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -24,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.AwtWindow
+import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
@@ -45,25 +48,98 @@ import java.awt.Frame
 import java.io.File
 
 fun main() = application {
-    val instance = ToolkitInstance()
+    val context = remember { ApplicationContext() }
 
-    Window(
-        onCloseRequest = ::exitApplication,
-        state = rememberWindowState(
-            position = WindowPosition(Alignment.Center),
-            size = DpSize(1280.dp, 800.dp)
-        ),
-        title = "csvtoolkit",
-        resizable = false
-    ) {
-        MaterialTheme {
-            MainView(instance)
+    context.windows.forEach {
+        key(it) { Window(it) }
+    }
+}
+
+@Composable
+private fun Window(context: WindowContext) = Window(
+    onCloseRequest = context::closeProject,
+    state = rememberWindowState(
+        position = WindowPosition(Alignment.Center),
+        size = DpSize(1280.dp, 800.dp)
+    ),
+    title = "csvtoolkit",
+    resizable = false
+) {
+    var showOpenProjectFileDialog by remember { mutableStateOf(false) }
+    var showSaveProjectFileDialog by remember { mutableStateOf(false) }
+    var showExportDataFileDialog by remember { mutableStateOf(false) }
+
+    MenuBar {
+        Menu(
+            text = "Project",
+            mnemonic = 'P'
+        ) {
+            Item(
+                text = "New",
+                mnemonic = 'N'
+            ) {
+                context.newProject()
+            }
+            Item(
+                text = "Open",
+                mnemonic = 'O'
+            ) {
+                showOpenProjectFileDialog = true
+            }
+            Item(
+                text = "Save",
+                mnemonic = 'S'
+            ) {
+                showSaveProjectFileDialog = true
+            }
+            Item(
+                text = "Close",
+                mnemonic = 'C'
+            ) {
+                context.closeProject()
+            }
+            Separator()
+            Item(
+                text = "Export",
+                enabled = context.instance.allowDataExport,
+                mnemonic = 'E'
+            ) {
+                showExportDataFileDialog = true
+            }
+        }
+    }
+    MaterialTheme {
+        MainView(
+            instance = context.instance,
+            onExport = { showExportDataFileDialog = true }
+        )
+
+        if (showOpenProjectFileDialog) {
+            OpenFileDialog("Open Project", "csvproj") {
+                showOpenProjectFileDialog = false
+                context.openProject(it)
+            }
+        }
+        if (showSaveProjectFileDialog) {
+            SaveFileDialog("Save Project", "project", "csvproj") {
+                showSaveProjectFileDialog = false
+                context.instance.saveProject(it)
+            }
+        }
+        if (showExportDataFileDialog) {
+            SaveFileDialog("Export data to CSV", "data", "csv") {
+                showExportDataFileDialog = false
+                context.instance.exportData(it)
+            }
         }
     }
 }
 
 @Composable
-private fun MainView(instance: ToolkitInstance) = Row(
+private fun MainView(
+    instance: ToolkitInstance,
+    onExport: () -> Unit
+) = Row(
     modifier = Modifier.fillMaxSize()
         .padding(8.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -73,7 +149,6 @@ private fun MainView(instance: ToolkitInstance) = Row(
     var showEditTransformDialogFor: Transform? by remember { mutableStateOf(null) }
     var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
     var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
-    var showSaveFileDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.width(320.dp)
@@ -102,15 +177,15 @@ private fun MainView(instance: ToolkitInstance) = Row(
                 MapTable(it)
             }
         }
-        if (instance.data != null) {
+        if (instance.allowDataExport) {
             FloatingActionButton(
-                onClick = { showSaveFileDialog = true },
+                onClick = onExport,
                 modifier = Modifier.padding(16.dp)
                     .align(Alignment.BottomEnd)
             ) {
                 Icon(
                     imageVector = Icons.Default.Save,
-                    contentDescription = "Save output"
+                    contentDescription = "Export data"
                 )
             }
         }
@@ -177,29 +252,86 @@ private fun MainView(instance: ToolkitInstance) = Row(
         )
     }
     showConfirmationDialogFor?.Dialog()
-    if (showSaveFileDialog) {
-        SaveFileDialog(
-            onFileSpecified = { specifiedFile ->
-                showSaveFileDialog = false
-                instance.saveData(specifiedFile)
-            }
-        )
+}
+
+private class ApplicationContext {
+    val windows = mutableStateListOf<WindowContext>()
+
+    init { new() }
+
+    fun new() = open(ToolkitInstance())
+    fun open(instance: ToolkitInstance) {
+        windows.add(WindowContext(
+            instance = instance,
+            onNew = ::new,
+            onOpen = ::open,
+            onClose = windows::remove
+        ))
     }
+}
+private class WindowContext(
+    val instance: ToolkitInstance,
+    private val onNew: () -> Unit,
+    private val onOpen: (ToolkitInstance) -> Unit,
+    private val onClose: (WindowContext) -> Unit
+) {
+    fun newProject() = onNew()
+    fun openProject(file: File) {
+        instance.loadProject(file, onOpen)
+    }
+    fun closeProject() = onClose(this)
 }
 
 @Composable
-private fun SaveFileDialog(
-    onFileSpecified: (specifiedFile: File) -> Unit,
-    parent: Frame? = null
+private fun OpenFileDialog(
+    title: String,
+    vararg allowedExtensions: String,
+    parent: Frame? = null,
+    onFileSpecified: (specifiedFile: File) -> Unit
 ) = AwtWindow(
     create = {
-        object : FileDialog(parent, "Save CSV File", SAVE) {
+        object : FileDialog(parent, title, LOAD) {
             override fun setVisible(visible: Boolean) {
                 super.setVisible(visible)
                 if (visible && file != null) {
                     onFileSpecified(File(directory, file))
                 }
             }
+        }.apply {
+            //This doesn't work in Windows
+            if (allowedExtensions.isNotEmpty()) {
+                setFilenameFilter { _, fileName ->
+                    allowedExtensions.any {
+                        fileName.endsWith(".$it")
+                    }
+                }
+            }
+        }
+    },
+    dispose = FileDialog::dispose
+)
+
+@Composable
+private fun SaveFileDialog(
+    title: String,
+    defaultFileName: String? = null,
+    requiredExtension: String? = null,
+    parent: Frame? = null,
+    onFileSpecified: (specifiedFile: File) -> Unit
+) = AwtWindow(
+    create = {
+        object : FileDialog(parent, title, SAVE) {
+            override fun setVisible(visible: Boolean) {
+                super.setVisible(visible)
+                if (visible && file != null) {
+                    if (requiredExtension != null && !file.endsWith(requiredExtension)) {
+                        file += ".$requiredExtension"
+                    }
+                    onFileSpecified(File(directory, file))
+                }
+            }
+        }.apply {
+            file = defaultFileName
         }
     },
     dispose = FileDialog::dispose

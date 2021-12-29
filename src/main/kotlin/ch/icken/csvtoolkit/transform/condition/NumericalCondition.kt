@@ -25,12 +25,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
+import ch.icken.csvtoolkit.transform.Transform.FosterParent
+import ch.icken.csvtoolkit.transform.condition.NumericalCondition.NumericalSerializer
 import ch.icken.csvtoolkit.ui.Spinner
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
+@Serializable(with = NumericalSerializer::class)
 class NumericalCondition(
-    parentTransform: ConditionParentTransform,
-    parentCondition: ConditionParent?
-) : Condition(parentTransform, parentCondition) {
+    override val parentTransform: ConditionParentTransform,
+    override val parentCondition: ConditionParent?
+) : Condition() {
     override val description get() = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column ?: "?")
@@ -44,23 +52,30 @@ class NumericalCondition(
             append(compareTo.text)
         }
     }
+    override val surrogate get() = NumericalSurrogate(column, compareType, compareTo.text)
 
     private var column: String? by mutableStateOf(null)
     private var compareType by mutableStateOf(Type.EQ)
     private var compareTo by mutableStateOf(TextFieldValue(""))
-    private val compareDouble = derivedStateOf { compareTo.text.toDoubleOrNull() ?: Double.NaN }
+    private val compareDouble by derivedStateOf { compareTo.text.toDoubleOrNull() ?: Double.NaN }
     private val valueInvalidCharacters = Regex("[^0-9.]")
+
+    constructor(surrogate: NumericalSurrogate) : this(FosterParent, null) {
+        column = surrogate.column
+        compareType = surrogate.compareType
+        compareTo = TextFieldValue(surrogate.compareTo)
+    }
 
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column ?: return false
         val referenceDouble = row[columnName]?.toDoubleOrNull() ?: return false
         return when (compareType) {
-            Type.EQ -> referenceDouble == compareDouble.value
-            Type.NEQ -> referenceDouble != compareDouble.value
-            Type.LT -> referenceDouble < compareDouble.value
-            Type.GT -> referenceDouble > compareDouble.value
-            Type.LTE -> referenceDouble <= compareDouble.value
-            Type.GTE -> referenceDouble >= compareDouble.value
+            Type.EQ -> referenceDouble == compareDouble
+            Type.NEQ -> referenceDouble != compareDouble
+            Type.LT -> referenceDouble < compareDouble
+            Type.GT -> referenceDouble > compareDouble
+            Type.LTE -> referenceDouble <= compareDouble
+            Type.GTE -> referenceDouble >= compareDouble
         }
     }
 
@@ -129,7 +144,7 @@ class NumericalCondition(
         }
     }
 
-    private enum class Type(
+    enum class Type(
         val uiName: String
     ) {
         EQ("Equal to"),
@@ -138,5 +153,31 @@ class NumericalCondition(
         GT("Greater than"),
         LTE("Less than or equals"),
         GTE("Greater than or equals")
+    }
+
+    @Serializable
+    @SerialName("numerical")
+    class NumericalSurrogate(
+        val column: String?,
+        val compareType: Type,
+        val compareTo: String
+    ) : ConditionSurrogate
+    object NumericalSerializer : KSerializer<NumericalCondition> {
+        override val descriptor = NumericalSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: NumericalCondition) {
+            encoder.encodeSerializableValue(NumericalSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): NumericalCondition {
+            return NumericalCondition(decoder.decodeSerializableValue(NumericalSurrogate.serializer()))
+        }
+    }
+    override fun adopt(parentTransform: ConditionParentTransform, parentCondition: ConditionParent?): Condition {
+        return NumericalCondition(parentTransform, parentCondition).also { copy ->
+            copy.column = column
+            copy.compareType = compareType
+            copy.compareTo = compareTo
+        }
     }
 }

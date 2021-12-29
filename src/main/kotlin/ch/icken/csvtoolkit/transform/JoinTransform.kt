@@ -25,12 +25,19 @@ import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.lowercaseIf
 import ch.icken.csvtoolkit.onEach
+import ch.icken.csvtoolkit.transform.JoinTransform.JoinSerializer
 import ch.icken.csvtoolkit.ui.Spinner
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
-class JoinTransform : Transform() {
+@Serializable(with = JoinSerializer::class)
+class JoinTransform() : Transform() {
     override val description get() = buildAnnotatedString {
         append(joinType.uiName)
         append(" ")
@@ -48,12 +55,24 @@ class JoinTransform : Transform() {
             append(joinOnColumn ?: "?")
         }
     }
+    override val surrogate get() = JoinSurrogate(column, joinType, joinOnFile?.uuid, joinOnColumn, caseInsensitive)
 
     private var column: String? by mutableStateOf(null)
     private var joinType by mutableStateOf(Type.INNER)
     private var joinOnFile: TabulatedFile? by mutableStateOf(null)
     private var joinOnColumn: String? by mutableStateOf(null)
     private var caseInsensitive by mutableStateOf(false)
+
+    //Used to find file when loading from project file
+    private var joinOnFileUuid: String? = null
+
+    constructor(surrogate: JoinSurrogate) : this() {
+        column = surrogate.column
+        joinType = surrogate.joinType
+        joinOnFileUuid = surrogate.joinOnFileUuid
+        joinOnColumn = surrogate.joinOnColumn
+        caseInsensitive = surrogate.caseInsensitive
+    }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
         val joinOnFileValue = joinOnFile
@@ -214,10 +233,34 @@ class JoinTransform : Transform() {
         }
     }
 
-    private enum class Type(
+    enum class Type(
         val uiName: String
     ) {
         INNER("Inner Join"),
         LEFT("Left Join")
+    }
+
+    @Serializable
+    @SerialName("join")
+    class JoinSurrogate(
+        val column: String?,
+        val joinType: Type,
+        val joinOnFileUuid: String?,
+        val joinOnColumn: String?,
+        val caseInsensitive: Boolean
+    ) : TransformSurrogate
+    object JoinSerializer : KSerializer<JoinTransform> {
+        override val descriptor = JoinSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: JoinTransform) {
+            encoder.encodeSerializableValue(JoinSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): JoinTransform {
+            return JoinTransform(decoder.decodeSerializableValue(JoinSurrogate.serializer()))
+        }
+    }
+    override fun postDeserialization(instance: ToolkitInstance) {
+        joinOnFile = instance.files.find { it.uuid == joinOnFileUuid }
     }
 }

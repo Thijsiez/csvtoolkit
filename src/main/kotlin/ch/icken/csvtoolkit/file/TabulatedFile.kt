@@ -8,6 +8,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -27,22 +28,28 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import java.io.File
 
+@Serializable
 abstract class TabulatedFile(
-    val path: String,
-    private val alias: String?
+    protected val path: String,
+    val uuid: String
 ) {
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
     private lateinit var data: List<Map<String, String>>
 
-    val file: File get() = File(path)
-    val name: String get() = alias ?: file.nameWithoutExtension
+    @Transient
+    protected val file = File(path)
+    val name by derivedStateOf { file.nameWithoutExtension }
+    val isValid: Boolean get() = file.run { exists() && isFile }
+
     var state by mutableStateOf(State.NOT_LOADED); protected set
-    val isValid: Boolean get() = file.run { exists() && isFile } && state == State.LOADED
 
     abstract val headers: List<String>
     abstract val preview: List<List<String>>
+    abstract val surrogate: FileSurrogate
 
     protected abstract fun loadData(): List<Map<String, String>>
 
@@ -112,5 +119,10 @@ abstract class TabulatedFile(
         NOT_LOADED,
         LOADED,
         INVALID
+    }
+
+    interface FileSurrogate {
+        val path: String
+        val uuid: String
     }
 }

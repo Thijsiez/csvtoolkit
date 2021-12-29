@@ -36,14 +36,21 @@ import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.set
+import ch.icken.csvtoolkit.transform.MergeTransform.MergeSerializer
 import ch.icken.csvtoolkit.ui.Spinner
 import ch.icken.csvtoolkit.ui.VerticalDivider
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlin.math.max
 
-class MergeTransform : Transform(), TransformCustomStateContent {
+@Serializable(with = MergeSerializer::class)
+class MergeTransform() : Transform(), TransformCustomStateContent {
     override val description get() = buildAnnotatedString {
         append(mergeType.uiName)
         append(" ")
@@ -58,12 +65,23 @@ class MergeTransform : Transform(), TransformCustomStateContent {
         if (mergeWithFile?.name?.endsWith('s') == false) append('s')
         append(" columns")
     }
+    override val surrogate get() = MergeSurrogate(mergeType, mergeWithFile?.uuid, mergeColumns)
 
     private var mergeType by mutableStateOf(Type.RANDOM)
     private var mergeWithFile: TabulatedFile? by mutableStateOf(null)
-    private val mergeColumns = mutableStateListOf<Pair<String, Boolean>>()
-    private val numberOfColumnsSelected by derivedStateOf { mergeColumns.count { it.second } }
-    private val keepColumns by derivedStateOf { mergeColumns.filter { it.second }.map { it.first } }
+    private val mergeColumns = mutableStateListOf<Merge>()
+    private val numberOfColumnsSelected by derivedStateOf { mergeColumns.count { it.merge } }
+    private val keepColumns by derivedStateOf { mergeColumns.filter { it.merge }.map { it.columnName } }
+
+    //Used to find file when loading from project file
+    private var mergeWithFileUuid: String? = null
+
+    constructor(surrogate: MergeSurrogate) : this() {
+        mergeType = surrogate.mergeType
+        mergeWithFileUuid = surrogate.mergeWithFileUuid
+        mergeColumns.clear()
+        mergeColumns.addAll(surrogate.mergeColumns)
+    }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> {
         if (numberOfColumnsSelected == 0) return intermediate
@@ -156,7 +174,7 @@ class MergeTransform : Transform(), TransformCustomStateContent {
                             mergeWithFile = file
                             mergeColumns.clear()
                             if (file != null) {
-                                mergeColumns.addAll(file.headers.map { it to true })
+                                mergeColumns.addAll(file.headers.map { Merge(it, true) })
                             }
                         },
                         itemTransform = { it?.name ?: "-" },
@@ -186,7 +204,7 @@ class MergeTransform : Transform(), TransformCustomStateContent {
                                 Checkbox(
                                     checked = checked,
                                     onCheckedChange = { isChecked ->
-                                        mergeColumns.set(index) { it.copy(second = isChecked) }
+                                        mergeColumns.set(index) { it.copy(merge = isChecked) }
                                     }
                                 )
                                 Text(
@@ -215,10 +233,37 @@ class MergeTransform : Transform(), TransformCustomStateContent {
         }
     }
 
-    private enum class Type(
+    enum class Type(
         val uiName: String
     ) {
         REGULAR("Merge"),
         RANDOM("Random Merge")
+    }
+    @Serializable
+    data class Merge(
+        val columnName: String,
+        val merge: Boolean
+    )
+
+    @Serializable
+    @SerialName("merge")
+    class MergeSurrogate(
+        val mergeType: Type,
+        val mergeWithFileUuid: String?,
+        val mergeColumns: List<Merge>
+    ) : TransformSurrogate
+    object MergeSerializer : KSerializer<MergeTransform> {
+        override val descriptor = MergeSurrogate.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: MergeTransform) {
+            encoder.encodeSerializableValue(MergeSurrogate.serializer(), value.surrogate)
+        }
+
+        override fun deserialize(decoder: Decoder): MergeTransform {
+            return MergeTransform(decoder.decodeSerializableValue(MergeSurrogate.serializer()))
+        }
+    }
+    override fun postDeserialization(instance: ToolkitInstance) {
+        mergeWithFile = instance.files.find { it.uuid == mergeWithFileUuid }
     }
 }
