@@ -25,6 +25,7 @@ jobs:
         with:
           name: macOS
           path: build/compose/binaries/main/pkg
+          retention-days: 1
   packageWindows:
     runs-on: windows-latest
     steps:
@@ -42,6 +43,7 @@ jobs:
         with:
           name: windows
           path: build/compose/binaries/main/msi
+          retention-days: 1
   packageLinux:
     runs-on: ubuntu-latest
     steps:
@@ -61,7 +63,9 @@ jobs:
         with:
           name: linux
           path: build/compose/binaries/main/deb
+          retention-days: 1
   release:
+    needs: [packageMacOs, packageWindows, packageLinux]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
