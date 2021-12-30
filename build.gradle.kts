@@ -41,12 +41,18 @@ compose.desktop {
             packageVersion = "1.0.0"
             description = "Manipulate CSV files as if they are tables in a relational database :)"
 
+            val iconsRoot = project.file("./src/main/resources")
             macOS {
+                iconFile.set(iconsRoot.resolve("icon-macos.icns"))
                 bundleID = "ch.icken.csvtoolkit"
             }
             windows {
+                iconFile.set(iconsRoot.resolve("icon-windows.ico"))
                 upgradeUuid = "DDE4599E-E34C-4206-B7F2-74DBEFFFAA10"
                 menu = true
+            }
+            linux {
+                iconFile.set(iconsRoot.resolve("icon.png"))
             }
         }
     }

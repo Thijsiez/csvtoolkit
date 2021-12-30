@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.AwtWindow
@@ -63,6 +64,7 @@ private fun Window(context: WindowContext) = Window(
         size = DpSize(1280.dp, 800.dp)
     ),
     title = "csvtoolkit",
+    icon = painterResource("icon.png"),
     resizable = false
 ) {
     var showOpenProjectFileDialog by remember { mutableStateOf(false) }
