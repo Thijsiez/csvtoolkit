@@ -1,0 +1,87 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+jobs:
+  packageMacOS:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+      - name: Set up JDK 15
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '15'
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+      - name: Package with Gradle
+        run: ./gradlew --no-daemon packagePkg
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: macOS
+          path: build/compose/binaries/main/pkg
+  packageWindows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+      - name: Set up JDK 15
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '15'
+      - name: Package with Gradle
+        run: .\gradlew --no-daemon packageMsi
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows
+          path: build/compose/binaries/main/msi
+  packageLinux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+      - name: Set up JDK 15
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '15'
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+      - name: Package with Gradle
+        run: ./gradlew --no-daemon packageDeb
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux
+          path: build/compose/binaries/main/deb
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+      - name: Download macOS package
+        uses: actions/download-artifact@v2
+        with:
+          name: macOS
+      - name: Download Windows package
+        uses: actions/download-artifact@v2
+        with:
+          name: windows
+      - name: Download Linux package
+        uses: actions/download-artifact@v2
+        with:
+          name: linux
+      - name: Release packages
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.pkg
+            *.msi
+            *.deb
