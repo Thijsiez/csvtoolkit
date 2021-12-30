@@ -44,6 +44,7 @@ import ch.icken.csvtoolkit.ui.Confirmation
 import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
 import ch.icken.csvtoolkit.ui.DeleteConfirmationContent
 import ch.icken.csvtoolkit.ui.MapTable
+import ch.icken.csvtoolkit.ui.OpenWindowConfirmation
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
@@ -70,6 +71,7 @@ private fun Window(context: WindowContext) = Window(
     var showOpenProjectFileDialog by remember { mutableStateOf(false) }
     var showSaveProjectFileDialog by remember { mutableStateOf(false) }
     var showExportDataFileDialog by remember { mutableStateOf(false) }
+    var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
 
     MenuBar {
         Menu(
@@ -117,9 +119,13 @@ private fun Window(context: WindowContext) = Window(
         )
 
         if (showOpenProjectFileDialog) {
-            OpenFileDialog("Open Project", "csvproj") {
+            OpenFileDialog("Open Project", "csvproj") { projectFile ->
                 showOpenProjectFileDialog = false
-                context.openProject(it)
+                showConfirmationDialogFor = OpenWindowConfirmation(
+                    onHide = { showConfirmationDialogFor = null },
+                    newWindow = { context.openProject(projectFile) },
+                    thisWindow = { context.replaceInstance(projectFile) }
+                )
             }
         }
         if (showSaveProjectFileDialog) {
@@ -134,6 +140,7 @@ private fun Window(context: WindowContext) = Window(
                 context.instance.exportData(it)
             }
         }
+        showConfirmationDialogFor?.Dialog()
     }
 }
 
@@ -270,16 +277,24 @@ private class ApplicationContext {
     }
 }
 private class WindowContext(
-    val instance: ToolkitInstance,
+    instance: ToolkitInstance,
     private val onNew: () -> Unit,
     private val onOpen: (ToolkitInstance) -> Unit,
     private val onClose: (WindowContext) -> Unit
 ) {
+    var instance by mutableStateOf(instance); private set
+
     fun newProject() = onNew()
     fun openProject(file: File) {
         instance.loadProject(file, onOpen)
     }
     fun closeProject() = onClose(this)
+
+    fun replaceInstance(file: File) {
+        instance.loadProject(file) {
+            instance = it
+        }
+    }
 }
 
 @Composable

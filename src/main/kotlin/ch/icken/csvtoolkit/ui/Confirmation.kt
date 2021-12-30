@@ -113,3 +113,21 @@ fun DeleteConfirmationContent(
         )
     }
 }
+
+fun OpenWindowConfirmation(
+    onHide: () -> Unit,
+    newWindow: () -> Unit,
+    thisWindow: () -> Unit
+) = Confirmation(
+    title = "Open Project",
+    onHide = onHide,
+    positive = "New Window" to newWindow,
+    negative = "This Window" to thisWindow
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        //TODO use instance name in question
+        Text("Where would you like to open this project?")
+    }
+}
