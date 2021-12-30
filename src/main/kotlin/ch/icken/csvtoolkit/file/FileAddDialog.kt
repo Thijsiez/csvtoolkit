@@ -148,7 +148,7 @@ fun FileAddDialog(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     if (fileIsValid) {
-                        ListTable(file.preview)
+                        ListTable(file.observablePreview)
                     }
                 }
             }

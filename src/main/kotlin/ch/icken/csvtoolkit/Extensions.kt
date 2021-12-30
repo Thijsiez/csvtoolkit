@@ -24,10 +24,10 @@ inline fun <T, C : MutableIterable<T>> C.onEach(action: (T, MutableIterator<T>) 
     return apply { while (iterator.hasNext()) action(iterator.next(), iterator) }
 }
 
-fun LazyListState.calculateOffset(itemWidths: List<Float>): Float {
+fun LazyListState.calculateOffset(itemWidths: List<Float>, density: Float): Float {
     if (itemWidths.isEmpty()) return 0f
     return (itemWidths.subList(0, firstVisibleItemIndex).takeIf { it.isNotEmpty() }
-        ?.reduce { total, width -> total + width } ?: 0f) + firstVisibleItemScrollOffset
+        ?.reduce { total, width -> total + width } ?: 0f) + (firstVisibleItemScrollOffset / density)
 }
 
 inline fun <E> MutableList<E>.set(index: Int, newElement: (oldElement: E) -> E) {

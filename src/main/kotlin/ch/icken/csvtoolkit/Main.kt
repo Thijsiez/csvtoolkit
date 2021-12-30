@@ -175,9 +175,7 @@ private fun MainView(
         Card(
             modifier = Modifier.fillMaxSize()
         ) {
-            instance.data?.let {
-                MapTable(it)
-            }
+            MapTable(instance.observableData)
         }
         if (instance.allowDataExport) {
             FloatingActionButton(

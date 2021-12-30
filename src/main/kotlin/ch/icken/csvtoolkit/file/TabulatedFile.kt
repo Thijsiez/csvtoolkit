@@ -48,7 +48,8 @@ abstract class TabulatedFile(
     var state by mutableStateOf(State.NOT_LOADED); protected set
 
     abstract val headers: List<String>
-    abstract val preview: List<List<String>>
+    protected abstract val preview: List<List<String>>
+    val observablePreview = derivedStateOf { preview }
     abstract val surrogate: FileSurrogate
 
     protected abstract fun loadData(): List<Map<String, String>>
@@ -97,9 +98,9 @@ abstract class TabulatedFile(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         if (state == State.LOADED) {
-                            MapTable(data)
+                            MapTable(derivedStateOf { data })
                         } else {
-                            ListTable(preview)
+                            ListTable(observablePreview)
                         }
                     }
                 }

@@ -28,6 +28,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,7 +51,7 @@ import kotlin.math.round
 
 @Composable
 fun ListTable(
-    data: List<List<String>>,
+    data: State<List<List<String>>>,
     cell: @Composable (row: Int, column: String, value: String) -> Unit = { _, _, value ->
         Text(
             text = value,
@@ -59,9 +61,11 @@ fun ListTable(
         )
     }
 ) {
-    if (data.isEmpty()) return
-    val columnNamesAndWidths = data.first().map { it to mutableStateOf(DefaultColumnWidth) }
-    Table(columnNamesAndWidths, data.subList(1, data.size)) { row, rowData ->
+    if (data.value.isEmpty() || data.value.first().isEmpty()) return
+    val columnNamesAndWidths by derivedStateOf {
+        data.value.first().map { it to mutableStateOf(DefaultColumnWidth) }
+    }
+    Table(columnNamesAndWidths, data.value.subList(1, data.value.size)) { row, rowData ->
         columnNamesAndWidths.forEachIndexed { index, (columnName, width) ->
             Box(
                 modifier = Modifier.requiredWidth(width.value.dp),
@@ -76,7 +80,7 @@ fun ListTable(
 
 @Composable
 fun <T> MapTable(
-    data: List<Map<String, T>>,
+    data: State<List<Map<String, T>>>,
     cell: @Composable (row: Int, column: String, value: T) -> Unit = { _, _, value ->
         Text(
             text = value.toString(),
@@ -86,9 +90,11 @@ fun <T> MapTable(
         )
     }
 ) {
-    if (data.isEmpty()) return
-    val columnNamesAndWidths = data.first().keys.map { it to mutableStateOf(DefaultColumnWidth) }
-    Table(columnNamesAndWidths, data) { row, rowData ->
+    if (data.value.isEmpty() || data.value.first().isEmpty()) return
+    val columnNamesAndWidths by derivedStateOf {
+        data.value.first().keys.map { it to mutableStateOf(DefaultColumnWidth) }
+    }
+    Table(columnNamesAndWidths, data.value) { row, rowData ->
         columnNamesAndWidths.forEach { (columnName, width) ->
             Box(
                 modifier = Modifier.requiredWidth(width.value.dp),
@@ -112,6 +118,7 @@ private fun <C> Table(
 ) = Box {
     val horizontalState = rememberLazyListState()
     val verticalState = rememberLazyListState()
+    val localDensity = LocalDensity.current.density
 
     Column {
         CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.body2) {
@@ -136,7 +143,8 @@ private fun <C> Table(
                             modifier = Modifier.align(Alignment.CenterEnd)
                                 .draggable(
                                     state = rememberDraggableState { delta ->
-                                        width.value += delta
+                                        //width is in Dp, delta is in Px, convert using density
+                                        width.value += delta / localDensity
                                     },
                                     orientation = Orientation.Horizontal
                                 )
@@ -147,19 +155,20 @@ private fun <C> Table(
             }
             Divider(color = Color.Black)
             BoxWithConstraints {
-                val parentWidth = with(LocalDensity.current) { maxWidth.toPx() }
+                val parentWidth = maxWidth.value
                 LazyColumn(
                     state = verticalState
                 ) {
                     val itemWidths = headers.map { it.second.value }
                     val rowWidth = itemWidths.reduce { total, width -> total + width }
-                    val offsetCorrection = if (rowWidth > parentWidth) (rowWidth - parentWidth) / 2 else 0f
+                    val offset = round(-horizontalState.calculateOffset(itemWidths, localDensity) +
+                            if (rowWidth > parentWidth) (rowWidth - parentWidth) / 2 else 0f)
                     itemsIndexed(data) { index, item ->
                         var isHovered by remember { mutableStateOf(false) }
                         Row(
                             modifier = Modifier.requiredWidth(rowWidth.dp)
                                 .height(26.dp)
-                                .offset(round(-horizontalState.calculateOffset(itemWidths) + offsetCorrection).dp)
+                                .offset(offset.dp)
                                 .background(if (isHovered) rowHoverColor else Color.Transparent)
                                 .onPointerEvent(PointerEventType.Exit) { isHovered = false }
                                 .onPointerEvent(PointerEventType.Enter) { isHovered = true },

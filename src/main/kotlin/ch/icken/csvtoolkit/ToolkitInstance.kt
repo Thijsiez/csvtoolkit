@@ -96,7 +96,8 @@ class ToolkitInstance() : CoroutineScope {
 
     val files = mutableStateListOf<TabulatedFile>()
     val transforms = mutableStateListOf<Transform>()
-    var data: List<Map<String, String>>? by mutableStateOf(null); private set
+    private var data: List<Map<String, String>> by mutableStateOf(emptyList())
+    val observableData = derivedStateOf { data }
 
     var baseFileOverride: TabulatedFile? by mutableStateOf(null)
     val baseFile by derivedStateOf { baseFileOverride ?: files.firstOrNull() ?: throw NoSuchElementException() }
@@ -104,7 +105,7 @@ class ToolkitInstance() : CoroutineScope {
     val allowDoingTheThing by derivedStateOf {
         files.size >= 1 && files.all { it.isValid } && transforms.size >= 1 && transforms.all { it.isValid(this) }
     }
-    val allowDataExport by derivedStateOf { data != null }
+    val allowDataExport by derivedStateOf { data.isNotEmpty() && data.first().isNotEmpty() }
     var isDoingTheThing by mutableStateOf(false); private set
     var currentlyProcessingTransform: Transform? by mutableStateOf(null); private set
 
@@ -132,7 +133,7 @@ class ToolkitInstance() : CoroutineScope {
         }
         currentlyProcessingTransform = null
         isDoingTheThing = false
-        launch(Dispatchers.Main) { data = finalData }
+        launch(Dispatchers.Main) { data = finalData ?: emptyList() }
     }
 
     fun loadProject(file: File, onSuccess: (ToolkitInstance) -> Unit) = launch(Dispatchers.IO) {
@@ -147,15 +148,13 @@ class ToolkitInstance() : CoroutineScope {
         }
     }
     fun exportData(file: File) = launch(Dispatchers.IO) {
-        data?.let { data ->
-            if (data.isEmpty()) return@launch
+        if (data.isEmpty()) return@launch
 
-            val headers = data.first().keys.toList()
-            csvWriter().openAsync(file) {
-                writeRow(headers)
-                data.forEach { row ->
-                    writeRow(headers.map { row[it] ?: "" })
-                }
+        val headers = data.first().keys.toList()
+        csvWriter().openAsync(file) {
+            writeRow(headers)
+            data.forEach { row ->
+                writeRow(headers.map { row[it] ?: "" })
             }
         }
     }
