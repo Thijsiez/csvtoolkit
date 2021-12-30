@@ -1,8 +1,6 @@
 name: Release
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
 jobs:
@@ -23,7 +21,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: macOS
+          name: macos
           path: build/compose/binaries/main/pkg
           retention-days: 1
   packageWindows:
@@ -73,7 +71,7 @@ jobs:
       - name: Download macOS package
         uses: actions/download-artifact@v2
         with:
-          name: macOS
+          name: macos
       - name: Download Windows package
         uses: actions/download-artifact@v2
         with:
@@ -89,3 +87,10 @@ jobs:
             *.pkg
             *.msi
             *.deb
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            macos
+            windows
+            linux
