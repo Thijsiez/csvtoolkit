@@ -109,6 +109,17 @@ private fun FilesItemView(
     ) {
         when (file.state) {
             State.NOT_LOADED -> {
+                TooltipArea(
+                    tooltip = { Tooltip("Data not loaded yet") }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Data not loaded yet",
+                        tint = Color.Green
+                    )
+                }
+            }
+            State.LOADING -> {
                 CircularProgressIndicator()
             }
             State.LOADED -> {

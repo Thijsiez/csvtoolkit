@@ -40,3 +40,5 @@ inline fun String.lowercaseIf(predicate: (String) -> Boolean): String {
 
 fun KeyEvent.isDown(checkKey: Key, action: () -> Unit) =
     if (type == KeyEventType.KeyDown && key == checkKey) { action(); true } else false
+
+fun <T> Iterable<T>.filterIn(items: Collection<T>) = filter { it in items }

@@ -1,5 +1,6 @@
 package ch.icken.csvtoolkit.file
 
+import androidx.compose.ui.text.input.TextFieldValue
 import ch.icken.csvtoolkit.file.CsvFile.CsvSerializer
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import kotlinx.serialization.KSerializer
@@ -33,9 +34,12 @@ class CsvFile(
         reader.open(file) {
             (0..10).mapNotNull { readNext() }
         }
-    override val surrogate get() = CsvSurrogate(path, uuid, delimiter)
+    override val surrogate get() = CsvSurrogate(path, uuid, alias.text, keepInMemory, delimiter)
 
-    constructor(surrogate: CsvSurrogate) : this(surrogate.path, surrogate.delimiter, surrogate.uuid)
+    constructor(surrogate: CsvSurrogate) : this(surrogate.path, surrogate.delimiter, surrogate.uuid) {
+        alias = TextFieldValue(surrogate.alias)
+        keepInMemory = surrogate.keepInMemory
+    }
 
     override fun loadData(): List<Map<String, String>> {
         return reader.readAllWithHeader(file)
@@ -55,6 +59,8 @@ class CsvFile(
     class CsvSurrogate(
         override val path: String,
         override val uuid: String,
+        override val alias: String,
+        override val keepInMemory: Boolean,
         val delimiter: Delimiter
     ) : FileSurrogate
     object CsvSerializer : KSerializer<CsvFile> {

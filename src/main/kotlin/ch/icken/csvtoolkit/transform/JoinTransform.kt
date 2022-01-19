@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.Checkbox
+import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,6 +56,7 @@ class JoinTransform() : Transform() {
         }
     }
     override val surrogate get() = JoinSurrogate(column, joinType, joinOnFile?.uuid, joinOnColumn, caseInsensitive)
+    override val usesFile get() = joinOnFile
 
     private var column: String? by mutableStateOf(null)
     private var joinType by mutableStateOf(Type.INNER)
@@ -149,6 +150,10 @@ class JoinTransform() : Transform() {
             invalidMessage = "File to join on not available"
             return false
         }
+        if (!joinOnFileValue.isValid) {
+            invalidMessage = "Referenced file is invalid"
+            return false
+        }
         if (joinOnColumnName !in joinOnFileValue.headers) {
             invalidMessage = "Right column not available"
             return false
@@ -221,7 +226,7 @@ class JoinTransform() : Transform() {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(
+                    Switch(
                         checked = caseInsensitive,
                         onCheckedChange = { isChecked ->
                             caseInsensitive = isChecked

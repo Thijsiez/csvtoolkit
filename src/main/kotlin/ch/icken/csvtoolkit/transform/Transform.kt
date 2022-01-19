@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.firstDuplicateOrNull
 import ch.icken.csvtoolkit.transform.condition.Condition
 import kotlinx.serialization.Serializable
@@ -27,6 +28,7 @@ abstract class Transform {
 
     abstract val description: AnnotatedString
     abstract val surrogate: TransformSurrogate
+    open val usesFile: TabulatedFile? = null
 
     var invalidMessage by mutableStateOf(""); protected set
     var lastRunStats: Statistics? by mutableStateOf(null); protected set

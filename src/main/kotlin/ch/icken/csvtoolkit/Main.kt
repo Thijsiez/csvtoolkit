@@ -201,12 +201,15 @@ private fun MainView(
 
     if (showAddFileDialog) {
         FileAddDialog(
-            onAddFile = { instance.files.add(it.apply { load() }) },
+            onAddFile = { instance.files.add(it.apply { watchForChanges() }) },
             onHide = { showAddFileDialog = false }
         )
     }
     showPreviewFileDialogFor?.Dialog(
-        onHide = { showPreviewFileDialogFor = null }
+        onHide = {
+            showPreviewFileDialogFor?.unloadIfNecessary()
+            showPreviewFileDialogFor = null
+        }
     )
     showEditTransformDialogFor?.let { transform ->
         if (transform is ConditionalTransform && transform.parent != null) {
@@ -288,7 +291,10 @@ private class WindowContext(
     fun openProject(file: File) {
         instance.loadProject(file, onOpen)
     }
-    fun closeProject() = onClose(this)
+    fun closeProject() {
+        instance.close()
+        onClose(this)
+    }
 
     fun replaceInstance(file: File) {
         instance.loadProject(file) {

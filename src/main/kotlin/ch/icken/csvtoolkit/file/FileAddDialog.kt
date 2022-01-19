@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -111,7 +112,8 @@ fun FileAddDialog(
                     OutlinedTextField(
                         value = fileName,
                         onValueChange = { fileName = it },
-                        modifier = Modifier.padding(bottom = 8.dp),
+                        modifier = Modifier.requiredWidth(320.dp)
+                            .padding(bottom = 8.dp),
                         label = { Text("File Location") },
                         trailingIcon = {
                             IconButton(
@@ -158,12 +160,10 @@ fun FileAddDialog(
             @Synchronized
             override fun drop(dtde: DropTargetDropEvent) {
                 dtde.acceptDrop(DnDConstants.ACTION_REFERENCE)
-                try {
+                runCatching {
                     val list = dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
                     list.filterIsInstance<File>().takeIf { it.size == list.size } ?: emptyList()
-                } catch (e: Exception) {
-                    emptyList()
-                }.firstOrNull()?.let {
+                }.getOrDefault(emptyList()).firstOrNull()?.let {
                     fileName = TextFieldValue(it.absolutePath)
                 }
             }

@@ -33,6 +33,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -43,11 +44,12 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
+import java.io.Closeable
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 @Serializable(with = InstanceSerializer::class)
-class ToolkitInstance() : CoroutineScope {
+class ToolkitInstance() : CoroutineScope, Closeable {
     companion object {
         val serializationFormat = Yaml(
             serializersModule = SerializersModule {
@@ -91,7 +93,8 @@ class ToolkitInstance() : CoroutineScope {
     private val job = Job()
     override val coroutineContext: CoroutineContext
         get() = job + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
-            println("Whoops, we ran into a problem: ${throwable.message}")
+            println("Whoops, we ran into a problem...")
+            throwable.printStackTrace()
         }
 
     val files = mutableStateListOf<TabulatedFile>()
@@ -103,14 +106,15 @@ class ToolkitInstance() : CoroutineScope {
     val baseFile by derivedStateOf { baseFileOverride ?: files.firstOrNull() ?: throw NoSuchElementException() }
 
     val allowDoingTheThing by derivedStateOf {
-        files.size >= 1 && files.all { it.isValid } && transforms.size >= 1 && transforms.all { it.isValid(this) }
+        files.size >= 1 && files.filterIn(transforms.mapNotNull { it.usesFile }).all { it.isValid } &&
+                transforms.size >= 1 && transforms.all { it.isValid(this) }
     }
     val allowDataExport by derivedStateOf { data.isNotEmpty() && data.first().isNotEmpty() }
     var isDoingTheThing by mutableStateOf(false); private set
     var currentlyProcessingTransform: Transform? by mutableStateOf(null); private set
 
     constructor(surrogate: InstanceSurrogate) : this() {
-        files.addAll(surrogate.files.onEach { it.load() })
+        files.addAll(surrogate.files.onEach { it.watchForChanges() })
         baseFileOverride = files.find { it.uuid == surrogate.baseFileUuid }
         transforms.addAll(surrogate.transforms.onEach { it.postDeserialization(this) })
     }
@@ -131,6 +135,7 @@ class ToolkitInstance() : CoroutineScope {
                 transform.track { doTheActualThing(intermediateData) }
             }
         }
+        files.forEach { it.unloadIfNecessary() }
         currentlyProcessingTransform = null
         isDoingTheThing = false
         launch(Dispatchers.Main) { data = finalData ?: emptyList() }
@@ -157,6 +162,11 @@ class ToolkitInstance() : CoroutineScope {
                 writeRow(headers.map { row[it] ?: "" })
             }
         }
+    }
+
+    override fun close() {
+        files.forEach { it.close() }
+        cancel()
     }
 
     @Serializable
