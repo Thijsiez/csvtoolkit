@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Card
+import androidx.compose.material.Checkbox
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
@@ -203,7 +203,7 @@ abstract class TabulatedFile(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Switch(
+                                Checkbox(
                                     checked = keepInMemory,
                                     onCheckedChange = { keep ->
                                         keepInMemory = keep

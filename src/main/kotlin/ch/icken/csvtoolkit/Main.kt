@@ -39,8 +39,10 @@ import ch.icken.csvtoolkit.transform.ConditionalTransformSet
 import ch.icken.csvtoolkit.transform.Transform
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.TransformView
+import ch.icken.csvtoolkit.transform.aggregate.Aggregate
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Confirmation
+import ch.icken.csvtoolkit.ui.DeleteAggregateConfirmation
 import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
 import ch.icken.csvtoolkit.ui.DeleteConfirmationContent
 import ch.icken.csvtoolkit.ui.MapTable
@@ -156,6 +158,7 @@ private fun MainView(
     var showAddFileDialog by remember { mutableStateOf(false) }
     var showPreviewFileDialogFor: TabulatedFile? by remember { mutableStateOf(null) }
     var showEditTransformDialogFor: Transform? by remember { mutableStateOf(null) }
+    var showEditAggregateDialogFor: Aggregate? by remember { mutableStateOf(null) }
     var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
     var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
 
@@ -173,6 +176,7 @@ private fun MainView(
             instance = instance,
             onAddTransform = { instance.transforms.add(it) },
             onEditTransform = { showEditTransformDialogFor = it },
+            onEditAggregate = { showEditAggregateDialogFor = it },
             onEditCondition = { showEditConditionDialogFor = it }
         )
     }
@@ -214,7 +218,7 @@ private fun MainView(
     showEditTransformDialogFor?.let { transform ->
         if (transform is ConditionalTransform && transform.parent != null) {
             transform.ConditionalDialog(
-                context = transform.parent.getContext(instance),
+                context = transform.parent.getConditionContext(instance),
                 onHide = { showEditTransformDialogFor = null },
                 onDelete = {
                     showConfirmationDialogFor = Confirmation(
@@ -249,9 +253,21 @@ private fun MainView(
         }
 
     }
+    showEditAggregateDialogFor?.let { aggregate ->
+        aggregate.Dialog(
+            context = aggregate.parentTransform.getAggregateContext(instance),
+            onHide = { showEditAggregateDialogFor = null },
+            onDelete = {
+                showConfirmationDialogFor = DeleteAggregateConfirmation(
+                    aggregate = aggregate,
+                    onHide = { showConfirmationDialogFor = null }
+                )
+            }
+        )
+    }
     showEditConditionDialogFor?.let { condition ->
         condition.Dialog(
-            context = condition.parentTransform.getContext(instance),
+            context = condition.parentTransform.getConditionContext(instance),
             onHide = { showEditConditionDialogFor = null },
             onDelete = {
                 showConfirmationDialogFor = DeleteConditionConfirmation(

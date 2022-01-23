@@ -15,6 +15,7 @@ import androidx.compose.ui.text.withStyle
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.firstDuplicateOrNull
+import ch.icken.csvtoolkit.transform.aggregate.Aggregate
 import ch.icken.csvtoolkit.transform.condition.Condition
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -56,7 +57,13 @@ abstract class Transform {
 
     open fun postDeserialization(instance: ToolkitInstance) {}
 
-    fun getContext(instance: ToolkitInstance): Condition.Context {
+    fun getAggregateContext(instance: ToolkitInstance): Aggregate.Context {
+        return Aggregate.Context(
+            headers = instance.headersUpTo(this),
+            allowChanges = !instance.isDoingTheThing
+        )
+    }
+    fun getConditionContext(instance: ToolkitInstance): Condition.Context {
         return Condition.Context(
             headers = instance.headersUpTo(this),
             allowChanges = !instance.isDoingTheThing
@@ -73,6 +80,19 @@ abstract class Transform {
         }
     }
 
+    @Serializable
+    abstract class AggregateParentTransform : Transform() {
+        abstract override val surrogate: AggregateParentTransformSurrogate
+
+        @Transient
+        protected val aggregates = mutableStateListOf<Aggregate>()
+
+        fun remove(aggregate: Aggregate) = aggregates.remove(aggregate)
+
+        interface AggregateParentTransformSurrogate : TransformSurrogate {
+            val aggregates: List<Aggregate>
+        }
+    }
     @Serializable
     abstract class ConditionParentTransform : Transform() {
         abstract override val surrogate: ConditionParentTransformSurrogate
@@ -127,7 +147,7 @@ abstract class Transform {
     ) {
         CONDITIONAL("Conditional", { ConditionalTransformSet() }, false),
         FILTER("Filter", { FilterTransform() }, false),
-        //TODO grouping transform
+        GROUPBY("Group By", { GroupByTransform() }, false),
         JOIN("Join", { JoinTransform() }, false),
         MERGE("Merge", { MergeTransform() }, false),
         SELECT("Select", { SelectTransform() }, false),
@@ -136,7 +156,30 @@ abstract class Transform {
     }
 
     interface TransformSurrogate
-    object FosterParent : ConditionParentTransform() {
+    object AggregateFosterParent : AggregateParentTransform() {
+        override val description = buildAnnotatedString {
+            withStyle(style = SpanStyle(Color.Red)) {
+                append("You really shouldn't be seeing this :/")
+            }
+        }
+        override val surrogate: AggregateParentTransformSurrogate
+            get() = throw IllegalStateException()
+
+        override fun doTheHeaderThing(intermediate: MutableList<String>): MutableList<String> =
+            throw IllegalStateException()
+
+        override suspend fun doTheActualThing(
+            intermediate: MutableList<MutableMap<String, String>>
+        ): MutableList<MutableMap<String, String>> = throw IllegalStateException()
+
+        override fun isValid(instance: ToolkitInstance) = false
+
+        @Composable
+        override fun Dialog(instance: ToolkitInstance, onHide: () -> Unit, onDelete: () -> Unit) {
+            throw IllegalStateException()
+        }
+    }
+    object ConditionFosterParent : ConditionParentTransform() {
         override val description = buildAnnotatedString {
             withStyle(style = SpanStyle(Color.Red)) {
                 append("You really shouldn't be seeing this :/")

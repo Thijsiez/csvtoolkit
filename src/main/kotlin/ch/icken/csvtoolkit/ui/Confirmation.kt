@@ -21,6 +21,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.isDown
+import ch.icken.csvtoolkit.transform.aggregate.Aggregate
 import ch.icken.csvtoolkit.transform.condition.Condition
 
 data class Confirmation(
@@ -74,6 +75,23 @@ data class Confirmation(
         }
     }
 }
+
+fun DeleteAggregateConfirmation(
+    aggregate: Aggregate,
+    onHide: () -> Unit,
+    title: String = "Delete aggregate?",
+    onDelete: () -> Unit = {
+        aggregate.parentTransform.remove(aggregate)
+    },
+    content: @Composable BoxScope.() -> Unit = {
+        DeleteConfirmationContent(aggregate.description)
+    }
+) = Confirmation(
+    title = title,
+    onHide = onHide,
+    positive = "DELETE" to onDelete,
+    content = content
+)
 
 fun DeleteConditionConfirmation(
     condition: Condition,

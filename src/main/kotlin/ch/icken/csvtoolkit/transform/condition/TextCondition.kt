@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Checkbox
 import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.lowercaseIf
 import ch.icken.csvtoolkit.transform.EditDialog
+import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
-import ch.icken.csvtoolkit.transform.Transform.FosterParent
 import ch.icken.csvtoolkit.transform.condition.TextCondition.TextSerializer
 import ch.icken.csvtoolkit.ui.Spinner
 import kotlinx.serialization.KSerializer
@@ -63,7 +63,7 @@ class TextCondition(
     private val compareText by derivedStateOf { compareTo.text.lowercaseIf { caseInsensitive } }
     private var caseInsensitive by mutableStateOf(false)
 
-    constructor(surrogate: TextSurrogate) : this(FosterParent, null) {
+    constructor(surrogate: TextSurrogate) : this(ConditionFosterParent, null) {
         column = surrogate.column
         compareType = surrogate.compareType
         compareTo = TextFieldValue(surrogate.compareTo)
@@ -146,7 +146,7 @@ class TextCondition(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Switch(
+                    Checkbox(
                         checked = caseInsensitive,
                         onCheckedChange = { isChecked ->
                             caseInsensitive = isChecked

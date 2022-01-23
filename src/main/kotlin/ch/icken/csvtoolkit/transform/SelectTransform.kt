@@ -1,7 +1,9 @@
 package ch.icken.csvtoolkit.transform
 
 import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -134,37 +136,44 @@ class SelectTransform() : Transform(), TransformCustomStateContent {
                 size = DpSize(360.dp, Dp.Unspecified)
             )
         ) {
-            Box(
+            Column(
                 modifier = Modifier.fillMaxWidth()
-                    .height(320.dp)
+                    .height(320.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxHeight(),
-                    state = scrollState
-                ) {
-                    itemsIndexed(selectColumns) { index, (columnName, checked) ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .height(40.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = checked,
-                                onCheckedChange = { isChecked ->
-                                    selectColumns.set(index) { it.copy(select = isChecked) }
-                                }
-                            )
-                            Text(
-                                text = columnName,
-                                modifier = Modifier.weight(1f)
-                            )
+                Text(
+                    text = "Columns",
+                    fontWeight = FontWeight.Bold
+                )
+                Box {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxHeight(),
+                        state = scrollState
+                    ) {
+                        itemsIndexed(selectColumns) { index, (columnName, checked) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                                    .height(40.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = checked,
+                                    onCheckedChange = { isChecked ->
+                                        selectColumns.set(index) { it.copy(select = isChecked) }
+                                    }
+                                )
+                                Text(
+                                    text = columnName,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
+                    VerticalScrollbar(
+                        adapter = rememberScrollbarAdapter(scrollState),
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
                 }
-                VerticalScrollbar(
-                    adapter = rememberScrollbarAdapter(scrollState),
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                )
             }
         }
     }

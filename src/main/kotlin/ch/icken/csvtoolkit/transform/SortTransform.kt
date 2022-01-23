@@ -3,8 +3,11 @@ package ch.icken.csvtoolkit.transform
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.material.Checkbox
 import androidx.compose.material.Icon
 import androidx.compose.material.IconToggleButton
 import androidx.compose.material.Text
@@ -26,9 +29,12 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.lowercaseIf
 import ch.icken.csvtoolkit.transform.SortTransform.SortSerializer
 import ch.icken.csvtoolkit.ui.Spinner
 import ch.icken.csvtoolkit.ui.Tooltip
+import ch.icken.csvtoolkit.util.InterpretAs
+import ch.icken.csvtoolkit.util.interpret
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -45,14 +51,18 @@ class SortTransform() : Transform() {
         }
         append(if (ascending) ", ascending" else ", descending")
     }
-    override val surrogate get() = SortSurrogate(column, ascending)
+    override val surrogate get() = SortSurrogate(column, ascending, interpretAs, caseInsensitive)
 
     private var column: String? by mutableStateOf(null)
     private var ascending by mutableStateOf(true)
+    private var interpretAs by mutableStateOf(InterpretAs.TEXT)
+    private var caseInsensitive by mutableStateOf(false)
 
     constructor(surrogate: SortSurrogate) : this() {
         column = surrogate.column
         ascending = surrogate.ascending
+        interpretAs = surrogate.interpretAs
+        caseInsensitive = surrogate.caseInsensitive
     }
 
     override fun doTheHeaderThing(intermediate: MutableList<String>) = intermediate
@@ -64,9 +74,21 @@ class SortTransform() : Transform() {
         if (columnName == null ||
             intermediate.firstOrNull()?.containsKey(columnName) == false) return@coroutineScope intermediate
         return@coroutineScope intermediate.apply {
-            val selector: (MutableMap<String, String>) -> String? = { it[columnName]?.lowercase() }
-            if (ascending) sortBy(selector) else sortByDescending(selector)
+            sort(ascending) {
+                val value = it[columnName]
+                if (interpretAs == InterpretAs.TEXT) {
+                    value?.lowercaseIf { caseInsensitive }
+                } else {
+                    value?.interpret(interpretAs)
+                }
+            }
         }
+    }
+
+    private fun <T> MutableList<T>.sort(ascending: Boolean, selector: (T) -> Comparable<*>?) {
+        if (size > 1) sortWith(
+            if (ascending) compareBy(selector) else compareByDescending(selector)
+        )
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
@@ -96,33 +118,64 @@ class SortTransform() : Transform() {
             onHide = onHide,
             onDelete = onDelete,
             state = rememberDialogState(
-                size = DpSize(360.dp, Dp.Unspecified)
+                size = DpSize(420.dp, Dp.Unspecified)
             )
         ) {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Sort by")
-                Spinner(
-                    items = instance.headersUpTo(this@SortTransform),
-                    selectedItem = { column },
-                    onItemSelected = { column = it },
-                    itemTransform = { it ?: "-" },
-                    label = "Reference Column"
-                )
-                TooltipArea(
-                    tooltip = { Tooltip(if (ascending) "Ascending" else "Descending") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconToggleButton(
-                        checked = ascending,
-                        onCheckedChange = { ascending = it }
+                    Text("Sort by")
+                    Spinner(
+                        items = instance.headersUpTo(this@SortTransform),
+                        selectedItem = { column },
+                        onItemSelected = { column = it },
+                        itemTransform = { it ?: "-" },
+                        label = "Reference Column",
+                        modifier = Modifier.requiredWidth(240.dp)
+                    )
+                    TooltipArea(
+                        tooltip = { Tooltip(if (ascending) "Ascending" else "Descending") }
                     ) {
-                        Icon(
-                            imageVector = if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                            contentDescription = if (ascending) "Ascending" else "Descending"
-                        )
+                        IconToggleButton(
+                            checked = ascending,
+                            onCheckedChange = { ascending = it }
+                        ) {
+                            Icon(
+                                imageVector = if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                contentDescription = if (ascending) "Ascending" else "Descending"
+                            )
+                        }
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spinner(
+                        items = InterpretAs.values().asList(),
+                        selectedItem = { interpretAs },
+                        onItemSelected = { interpretAs = it },
+                        itemTransform = { it.uiName },
+                        label = "Interpret as"
+                    )
+                    if (interpretAs == InterpretAs.TEXT) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = caseInsensitive,
+                                onCheckedChange = { isChecked ->
+                                    caseInsensitive = isChecked
+                                }
+                            )
+                            Text("Case Insensitive")
+                        }
                     }
                 }
             }
@@ -133,7 +186,9 @@ class SortTransform() : Transform() {
     @SerialName("sort")
     class SortSurrogate(
         val column: String?,
-        val ascending: Boolean
+        val ascending: Boolean,
+        val interpretAs: InterpretAs,
+        val caseInsensitive: Boolean
     ) : TransformSurrogate
     object SortSerializer : KSerializer<SortTransform> {
         override val descriptor = SortSurrogate.serializer().descriptor

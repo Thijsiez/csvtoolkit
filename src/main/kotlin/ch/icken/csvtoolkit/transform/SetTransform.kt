@@ -138,7 +138,7 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
             onHide = onHide,
             onDelete = onDelete,
             state = rememberDialogState(
-                size = DpSize(480.dp, Dp.Unspecified)
+                size = DpSize(560.dp, Dp.Unspecified)
             )
         ) {
             Row(

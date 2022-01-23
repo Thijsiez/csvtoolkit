@@ -1,6 +1,7 @@
 package ch.icken.csvtoolkit.transform
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.DropdownMenu
@@ -39,6 +41,7 @@ import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.transform.ConditionalTransformSet.ConditionalSetSerializer
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
+import ch.icken.csvtoolkit.transform.aggregate.Aggregate
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.ConditionItemView
 import ch.icken.csvtoolkit.ui.Confirmation
@@ -105,7 +108,7 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
     }
 
     override fun isValid(instance: ToolkitInstance): Boolean {
-        val context = getContext(instance)
+        val context = getConditionContext(instance)
 
         if (!conditions.all { it.isValid(context) }) {
             invalidMessage = "One or more conditions are invalid"
@@ -126,6 +129,7 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
     override fun CustomItemView(
         instance: ToolkitInstance,
         onEditTransform: (Transform) -> Unit,
+        onEditAggregate: (Aggregate) -> Unit,
         onEditCondition: (Condition) -> Unit,
         modifier: Modifier
     ) {
@@ -184,7 +188,7 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
             } else {
                 conditions.forEach {
                     ConditionItemView(
-                        context = getContext(instance),
+                        context = getConditionContext(instance),
                         condition = it,
                         onEditCondition = onEditCondition
                     )
@@ -253,24 +257,31 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
                         text = "Conditions",
                         fontWeight = FontWeight.Bold
                     )
-                    LazyColumn(
+                    Box(
                         modifier = Modifier.weight(1f)
-                            .reorderable(
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.reorderable(
                                 state = conditionReorderState,
                                 onMove = { from, to ->
                                     conditions.move(from.index, to.index)
                                 }
                             ),
-                        state = conditionReorderState.listState
-                    ) {
-                        items(conditions, { it }) { condition ->
-                            ConditionItemView(
-                                context = getContext(instance),
-                                condition = condition,
-                                onEditCondition = { showEditConditionDialogFor = it },
-                                modifier = Modifier.reorderableItemModifier(conditionReorderState, condition)
-                            )
+                            state = conditionReorderState.listState
+                        ) {
+                            items(conditions, { it }) { condition ->
+                                ConditionItemView(
+                                    context = getConditionContext(instance),
+                                    condition = condition,
+                                    onEditCondition = { showEditConditionDialogFor = it },
+                                    modifier = Modifier.reorderableItemModifier(conditionReorderState, condition)
+                                )
+                            }
                         }
+                        VerticalScrollbar(
+                            adapter = rememberScrollbarAdapter(conditionReorderState.listState),
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
                     }
                     Box {
                         TextButton(
@@ -307,24 +318,31 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
                         text = "Transforms",
                         fontWeight = FontWeight.Bold
                     )
-                    LazyColumn(
+                    Box(
                         modifier = Modifier.weight(1f)
-                            .reorderable(
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.reorderable(
                                 state = transformReorderState,
                                 onMove = { from, to ->
                                     transforms.move(from.index, to.index)
                                 }
                             ),
-                        state = transformReorderState.listState
-                    ) {
-                        items(transforms, { it }) { transform ->
-                            TransformItemView(
-                                instance = instance,
-                                transform = transform,
-                                onEditTransform = { if (it is ConditionalTransform) showEditTransformDialogFor = it },
-                                modifier = Modifier.reorderableItemModifier(transformReorderState, transform)
-                            )
+                            state = transformReorderState.listState
+                        ) {
+                            items(transforms, { it }) { transform ->
+                                TransformItemView(
+                                    instance = instance,
+                                    transform = transform,
+                                    onEditTransform = { if (it is ConditionalTransform) showEditTransformDialogFor = it },
+                                    modifier = Modifier.reorderableItemModifier(transformReorderState, transform)
+                                )
+                            }
                         }
+                        VerticalScrollbar(
+                            adapter = rememberScrollbarAdapter(transformReorderState.listState),
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
                     }
                     Box {
                         TextButton(
@@ -358,7 +376,7 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
 
         showEditConditionDialogFor?.let { condition ->
             condition.Dialog(
-                context = getContext(instance),
+                context = getConditionContext(instance),
                 onHide = { showEditConditionDialogFor = null },
                 onDelete = {
                     showConfirmationDialogFor = DeleteConditionConfirmation(
@@ -371,7 +389,7 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
         showEditTransformDialogFor?.let { transform ->
             if (transform.parent != null) {
                 transform.ConditionalDialog(
-                    context = transform.parent.getContext(instance),
+                    context = transform.parent.getConditionContext(instance),
                     onHide = { showEditTransformDialogFor = null },
                     onDelete = {
                         showConfirmationDialogFor = Confirmation(

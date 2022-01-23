@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.transform.EditDialog
+import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
-import ch.icken.csvtoolkit.transform.Transform.FosterParent
 import ch.icken.csvtoolkit.transform.condition.RegexCondition.RegexSerializer
 import ch.icken.csvtoolkit.ui.Spinner
 import kotlinx.serialization.KSerializer
@@ -53,7 +53,7 @@ class RegexCondition(
     private var compareTo by mutableStateOf(TextFieldValue(""))
     private val compareRegex by derivedStateOf { Regex(compareTo.text) }
 
-    constructor(surrogate: RegexSurrogate) : this(FosterParent, null) {
+    constructor(surrogate: RegexSurrogate) : this(ConditionFosterParent, null) {
         column = surrogate.column
         compareTo = TextFieldValue(surrogate.compareTo)
     }
@@ -90,7 +90,7 @@ class RegexCondition(
             onHide = onHide,
             onDelete = onDelete,
             state = rememberDialogState(
-                size = DpSize(480.dp, Dp.Unspecified)
+                size = DpSize(560.dp, Dp.Unspecified)
             )
         ) {
             Row(

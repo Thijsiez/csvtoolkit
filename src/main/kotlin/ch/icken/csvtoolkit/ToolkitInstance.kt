@@ -10,14 +10,21 @@ import ch.icken.csvtoolkit.file.CsvFile
 import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.transform.ConditionalTransformSet
 import ch.icken.csvtoolkit.transform.FilterTransform
+import ch.icken.csvtoolkit.transform.GroupByTransform
 import ch.icken.csvtoolkit.transform.JoinTransform
 import ch.icken.csvtoolkit.transform.MergeTransform
 import ch.icken.csvtoolkit.transform.SelectTransform
 import ch.icken.csvtoolkit.transform.SetTransform
 import ch.icken.csvtoolkit.transform.SortTransform
 import ch.icken.csvtoolkit.transform.Transform
+import ch.icken.csvtoolkit.transform.Transform.AggregateParentTransform
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
+import ch.icken.csvtoolkit.transform.aggregate.Aggregate
+import ch.icken.csvtoolkit.transform.aggregate.AverageAggregate
+import ch.icken.csvtoolkit.transform.aggregate.CountAggregate
+import ch.icken.csvtoolkit.transform.aggregate.MinMaxAggregate
+import ch.icken.csvtoolkit.transform.aggregate.SumAggregate
 import ch.icken.csvtoolkit.transform.condition.AndCondition
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.Condition.ConditionParent
@@ -57,6 +64,9 @@ class ToolkitInstance() : CoroutineScope, Closeable {
                     subclass(CsvFile::class)
                 }
                 polymorphic(Transform::class) {
+                    polymorphic(AggregateParentTransform::class) {
+                        subclass(GroupByTransform::class)
+                    }
                     polymorphic(ConditionParentTransform::class) {
                         subclass(ConditionalTransformSet::class)
                         subclass(FilterTransform::class)
@@ -66,6 +76,7 @@ class ToolkitInstance() : CoroutineScope, Closeable {
                     }
                     subclass(ConditionalTransformSet::class)
                     subclass(FilterTransform::class)
+                    subclass(GroupByTransform::class)
                     subclass(JoinTransform::class)
                     subclass(MergeTransform::class)
                     subclass(SelectTransform::class)
@@ -82,6 +93,12 @@ class ToolkitInstance() : CoroutineScope, Closeable {
                     subclass(OrCondition::class)
                     subclass(RegexCondition::class)
                     subclass(TextCondition::class)
+                }
+                polymorphic(Aggregate::class) {
+                    subclass(AverageAggregate::class)
+                    subclass(CountAggregate::class)
+                    subclass(MinMaxAggregate::class)
+                    subclass(SumAggregate::class)
                 }
             },
             configuration = YamlConfiguration(

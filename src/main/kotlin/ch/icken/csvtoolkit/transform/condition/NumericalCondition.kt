@@ -24,10 +24,11 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.transform.EditDialog
+import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
-import ch.icken.csvtoolkit.transform.Transform.FosterParent
 import ch.icken.csvtoolkit.transform.condition.NumericalCondition.NumericalSerializer
 import ch.icken.csvtoolkit.ui.Spinner
+import ch.icken.csvtoolkit.util.interpretAsNumber
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -57,10 +58,10 @@ class NumericalCondition(
     private var column: String? by mutableStateOf(null)
     private var compareType by mutableStateOf(Type.EQ)
     private var compareTo by mutableStateOf(TextFieldValue(""))
-    private val compareDouble by derivedStateOf { compareTo.text.toDoubleOrNull() ?: Double.NaN }
+    private val compareDouble by derivedStateOf { compareTo.text.interpretAsNumber() }
     private val valueInvalidCharacters = Regex("[^0-9.]")
 
-    constructor(surrogate: NumericalSurrogate) : this(FosterParent, null) {
+    constructor(surrogate: NumericalSurrogate) : this(ConditionFosterParent, null) {
         column = surrogate.column
         compareType = surrogate.compareType
         compareTo = TextFieldValue(surrogate.compareTo)
@@ -68,7 +69,7 @@ class NumericalCondition(
 
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column ?: return false
-        val referenceDouble = row[columnName]?.toDoubleOrNull() ?: return false
+        val referenceDouble = row[columnName]?.interpretAsNumber() ?: return false
         return when (compareType) {
             Type.EQ -> referenceDouble == compareDouble
             Type.NEQ -> referenceDouble != compareDouble

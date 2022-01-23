@@ -159,7 +159,7 @@ class MergeTransform() : Transform(), TransformCustomStateContent {
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth()
-                    .height(240.dp),
+                    .height(320.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(
@@ -193,36 +193,45 @@ class MergeTransform() : Transform(), TransformCustomStateContent {
                     )
                 }
                 VerticalDivider()
-                Box(
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxHeight(),
-                        state = scrollState
+                    Text(
+                        text = "Columns",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        itemsIndexed(mergeColumns) { index, (columnName, checked) ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth()
-                                    .height(40.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = checked,
-                                    onCheckedChange = { isChecked ->
-                                        mergeColumns.set(index) { it.copy(merge = isChecked) }
-                                    }
-                                )
-                                Text(
-                                    text = columnName,
-                                    modifier = Modifier.weight(1f)
-                                )
+                        LazyColumn(
+                            modifier = Modifier.fillMaxHeight(),
+                            state = scrollState
+                        ) {
+                            itemsIndexed(mergeColumns) { index, (columnName, checked) ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .height(40.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = { isChecked ->
+                                            mergeColumns.set(index) { it.copy(merge = isChecked) }
+                                        }
+                                    )
+                                    Text(
+                                        text = columnName,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
+                        VerticalScrollbar(
+                            adapter = rememberScrollbarAdapter(scrollState),
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
                     }
-                    VerticalScrollbar(
-                        adapter = rememberScrollbarAdapter(scrollState),
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
                 }
             }
         }

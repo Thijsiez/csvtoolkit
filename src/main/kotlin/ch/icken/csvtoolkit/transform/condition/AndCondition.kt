@@ -1,6 +1,7 @@
 package ch.icken.csvtoolkit.transform.condition
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.MaterialTheme
@@ -31,8 +33,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.transform.EditDialog
+import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
-import ch.icken.csvtoolkit.transform.Transform.FosterParent
 import ch.icken.csvtoolkit.transform.condition.AndCondition.AndSerializer
 import ch.icken.csvtoolkit.transform.condition.Condition.ConditionParent
 import ch.icken.csvtoolkit.ui.Confirmation
@@ -57,7 +59,7 @@ class AndCondition(
     }
     override val surrogate get() = AndSurrogate(conditions)
 
-    constructor(surrogate: AndSurrogate) : this(FosterParent, null) {
+    constructor(surrogate: AndSurrogate) : this(ConditionFosterParent, null) {
         conditions.addAll(surrogate.conditions)
     }
 
@@ -155,24 +157,31 @@ class AndCondition(
                     text = "Conditions",
                     fontWeight = FontWeight.Bold
                 )
-                LazyColumn(
+                Box(
                     modifier = Modifier.weight(1f)
-                        .reorderable(
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.reorderable(
                             state = reorderState,
                             onMove = { from, to ->
                                 conditions.move(from.index, to.index)
                             }
                         ),
-                    state = reorderState.listState
-                ) {
-                    items(conditions, { it }) { condition ->
-                        ConditionItemView(
-                            context = context,
-                            condition = condition,
-                            onEditCondition = { showEditConditionDialogFor = it },
-                            modifier = Modifier.reorderableItemModifier(reorderState, condition)
-                        )
+                        state = reorderState.listState
+                    ) {
+                        items(conditions, { it }) { condition ->
+                            ConditionItemView(
+                                context = context,
+                                condition = condition,
+                                onEditCondition = { showEditConditionDialogFor = it },
+                                modifier = Modifier.reorderableItemModifier(reorderState, condition)
+                            )
+                        }
                     }
+                    VerticalScrollbar(
+                        adapter = rememberScrollbarAdapter(reorderState.listState),
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
                 }
                 Box {
                     TextButton(

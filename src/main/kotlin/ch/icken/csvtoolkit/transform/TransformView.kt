@@ -2,6 +2,7 @@ package ch.icken.csvtoolkit.transform
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.DropdownMenu
@@ -38,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
+import ch.icken.csvtoolkit.transform.aggregate.Aggregate
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Tooltip
 import ch.icken.csvtoolkit.ui.reorderableItemModifier
@@ -51,6 +54,7 @@ fun TransformView(
     instance: ToolkitInstance,
     onAddTransform: (Transform) -> Unit,
     onEditTransform: (Transform) -> Unit,
+    onEditAggregate: (Aggregate) -> Unit,
     onEditCondition: (Condition) -> Unit
 ) = Card {
     Column(
@@ -116,33 +120,40 @@ fun TransformView(
                 }
             }
         }
-        LazyColumn(
-            modifier = Modifier
-                .reorderable(
-                    state = reorderState,
-                    onMove = { from, to ->
-                        instance.transforms.move(from.index, to.index)
-                    }
-                ),
-            state = reorderState.listState
-        ) {
-            items(instance.transforms, { it }) {
-                TooltipArea(
-                    tooltip = {
-                        it.lastRunStats?.let { stats ->
-                            Tooltip(stats.text)
+        Box {
+            LazyColumn(
+                modifier = Modifier
+                    .reorderable(
+                        state = reorderState,
+                        onMove = { from, to ->
+                            instance.transforms.move(from.index, to.index)
                         }
+                    ),
+                state = reorderState.listState
+            ) {
+                items(instance.transforms, { it }) {
+                    TooltipArea(
+                        tooltip = {
+                            it.lastRunStats?.let { stats ->
+                                Tooltip(stats.text)
+                            }
+                        }
+                    ) {
+                        TransformItemView(
+                            instance = instance,
+                            transform = it,
+                            onEditTransform = onEditTransform,
+                            onEditAggregate = onEditAggregate,
+                            onEditCondition = onEditCondition,
+                            modifier = Modifier.reorderableItemModifier(reorderState, it)
+                        )
                     }
-                ) {
-                    TransformItemView(
-                        instance = instance,
-                        transform = it,
-                        onEditTransform = onEditTransform,
-                        onEditCondition = onEditCondition,
-                        modifier = Modifier.reorderableItemModifier(reorderState, it)
-                    )
                 }
             }
+            VerticalScrollbar(
+                adapter = rememberScrollbarAdapter(reorderState.listState),
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
         }
     }
 }
@@ -152,6 +163,7 @@ fun TransformItemView(
     instance: ToolkitInstance,
     transform: Transform,
     onEditTransform: (Transform) -> Unit,
+    onEditAggregate: (Aggregate) -> Unit = {},
     onEditCondition: (Condition) -> Unit = {},
     modifier: Modifier = Modifier,
     stateContent: @Composable RowScope.() -> Unit = {
@@ -180,6 +192,7 @@ fun TransformItemView(
         transform.CustomItemView(
             instance = instance,
             onEditTransform = onEditTransform,
+            onEditAggregate = onEditAggregate,
             onEditCondition = onEditCondition,
             modifier = modifier
         )
@@ -248,7 +261,7 @@ fun DefaultConditionalTransformStateContent(
 ) {
     when {
         transform.parent == null -> TransformInvalidIcon("Transform is malformed")
-        transform.isValidConditional(transform.parent.getContext(instance)) -> TransformValidIcon()
+        transform.isValidConditional(transform.parent.getConditionContext(instance)) -> TransformValidIcon()
         else -> TransformInvalidIcon(transform.invalidMessage)
     }
 }
@@ -298,6 +311,7 @@ interface TransformCustomItemView {
     fun CustomItemView(
         instance: ToolkitInstance,
         onEditTransform: (Transform) -> Unit,
+        onEditAggregate: (Aggregate) -> Unit,
         onEditCondition: (Condition) -> Unit,
         modifier: Modifier
     )
