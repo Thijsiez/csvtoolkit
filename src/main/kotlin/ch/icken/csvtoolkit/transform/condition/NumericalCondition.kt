@@ -28,6 +28,7 @@ import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.transform.condition.NumericalCondition.NumericalSerializer
 import ch.icken.csvtoolkit.ui.Spinner
+import ch.icken.csvtoolkit.util.NumberInterpreter.FloatInvalidCharacterFilter
 import ch.icken.csvtoolkit.util.interpretAsNumber
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -59,7 +60,6 @@ class NumericalCondition(
     private var compareType by mutableStateOf(Type.EQ)
     private var compareTo by mutableStateOf(TextFieldValue(""))
     private val compareDouble by derivedStateOf { compareTo.text.interpretAsNumber() }
-    private val valueInvalidCharacters = Regex("[^0-9.]")
 
     constructor(surrogate: NumericalSurrogate) : this(ConditionFosterParent, null) {
         column = surrogate.column
@@ -89,6 +89,15 @@ class NumericalCondition(
         }
         if (columnName !in context.headers) {
             invalidMessage = "Reference column not available"
+            return false
+        }
+
+        if (compareTo.text.matches(FloatInvalidCharacterFilter)) {
+            invalidMessage = "Contains invalid characters"
+            return false
+        }
+        if (compareDouble.isNaN()) {
+            invalidMessage = "A number was not specified"
             return false
         }
 
@@ -133,7 +142,7 @@ class NumericalCondition(
                     value = compareTo,
                     onValueChange = {
                         compareTo = it.copy(
-                            text = it.text.replace(valueInvalidCharacters, "")
+                            text = it.text.replace(FloatInvalidCharacterFilter, "")
                         )
                     },
                     modifier = Modifier.padding(bottom = 8.dp),

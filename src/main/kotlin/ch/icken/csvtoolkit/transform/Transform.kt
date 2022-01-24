@@ -152,7 +152,8 @@ abstract class Transform {
         MERGE("Merge", { MergeTransform() }, false),
         SELECT("Select", { SelectTransform() }, false),
         SET("Set", { SetTransform(it) }, true),
-        SORT("Sort", { SortTransform() }, false)
+        SORT("Sort", { SortTransform() }, false),
+        TOP("Top", { TopTransform() }, false)
     }
 
     interface TransformSurrogate

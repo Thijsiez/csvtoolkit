@@ -16,6 +16,7 @@ import ch.icken.csvtoolkit.transform.MergeTransform
 import ch.icken.csvtoolkit.transform.SelectTransform
 import ch.icken.csvtoolkit.transform.SetTransform
 import ch.icken.csvtoolkit.transform.SortTransform
+import ch.icken.csvtoolkit.transform.TopTransform
 import ch.icken.csvtoolkit.transform.Transform
 import ch.icken.csvtoolkit.transform.Transform.AggregateParentTransform
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
@@ -82,6 +83,7 @@ class ToolkitInstance() : CoroutineScope, Closeable {
                     subclass(SelectTransform::class)
                     subclass(SetTransform::class)
                     subclass(SortTransform::class)
+                    subclass(TopTransform::class)
                 }
                 polymorphic(Condition::class) {
                     polymorphic(ConditionParent::class) {

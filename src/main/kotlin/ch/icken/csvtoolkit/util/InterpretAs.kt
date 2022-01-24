@@ -21,5 +21,7 @@ object TextInterpreter : Interpreter<String> {
     override fun interpret(value: String) = value
 }
 object NumberInterpreter : Interpreter<Double> {
+    val IntInvalidCharacterFilter = Regex("[^-0-9]")
+    val FloatInvalidCharacterFilter = Regex("[^-0-9.]")
     override fun interpret(value: String) = value.toDoubleOrNull() ?: Double.NaN
 }
