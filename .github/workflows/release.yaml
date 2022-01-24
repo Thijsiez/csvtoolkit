@@ -17,12 +17,12 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
       - name: Package with Gradle
-        run: ./gradlew --no-daemon packagePkg
+        run: ./gradlew --no-daemon packageDmg
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: macos
-          path: build/compose/binaries/main/pkg
+          path: build/compose/binaries/main/dmg
   packageWindows:
     runs-on: windows-latest
     steps:
@@ -81,7 +81,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            *.pkg
+            *.dmg
             *.msi
             *.deb
       - name: Delete artifacts

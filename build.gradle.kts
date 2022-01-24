@@ -35,7 +35,7 @@ compose.desktop {
     application {
         mainClass = "ch.icken.csvtoolkit.MainKt"
         nativeDistributions {
-            targetFormats(TargetFormat.Pkg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
 
             packageName = "csvtoolkit"
             packageVersion = "1.0.0"
