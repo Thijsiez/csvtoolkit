@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -146,6 +147,11 @@ fun FileAddDialog(
                         }
                     }
                 }
+                Text(
+                    text = "PREVIEW",
+                    modifier = Modifier.align(Alignment.End),
+                    fontWeight = FontWeight.Bold
+                )
                 Card(
                     modifier = Modifier.fillMaxSize()
                 ) {

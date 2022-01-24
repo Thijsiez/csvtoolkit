@@ -210,10 +210,7 @@ private fun MainView(
         )
     }
     showPreviewFileDialogFor?.Dialog(
-        onHide = {
-            showPreviewFileDialogFor?.unloadIfNecessary()
-            showPreviewFileDialogFor = null
-        }
+        onHide = { showPreviewFileDialogFor = null }
     )
     showEditTransformDialogFor?.let { transform ->
         if (transform is ConditionalTransform && transform.parent != null) {

@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -96,23 +97,27 @@ abstract class TabulatedFile(
     protected var keepInMemory by mutableStateOf(true)
 
     private fun load() = launch {
-        data = runCatching {
-            loadData().also {
+        launch(Dispatchers.Main) {
+            state = State.LOADING
+        }
+        runCatching {
+            val newData = loadData()
+            launch(Dispatchers.Main) {
+                data = newData
                 state = State.LOADED
             }
         }.getOrElse {
-            state = State.INVALID
-            emptyList()
+            launch(Dispatchers.Main) {
+                data = emptyList()
+                state = State.INVALID
+            }
         }
     }
     protected abstract fun loadData(): List<Map<String, String>>
 
     suspend fun <R> letData(block: suspend (data: List<Map<String, String>>) -> R): R? {
         if (!isValid) return null
-        if (state == State.NOT_LOADED) {
-            state = State.LOADING
-            load().join()
-        }
+        if (state == State.NOT_LOADED) load().join()
         if (state == State.INVALID) return null
         return block(data)
     }
@@ -126,11 +131,16 @@ abstract class TabulatedFile(
                     for (event in watchKey.pollEvents()) {
                         if (!(event.context() as Path).endsWith(file.name)) continue
                         state = when (event.kind()) {
-                            ENTRY_CREATE, ENTRY_MODIFY -> State.NOT_LOADED
-                            ENTRY_DELETE -> State.INVALID
+                            ENTRY_CREATE, ENTRY_MODIFY -> {
+                                data = emptyList()
+                                State.NOT_LOADED
+                            }
+                            ENTRY_DELETE -> {
+                                data = emptyList()
+                                State.INVALID
+                            }
                             else -> state
                         }
-                        data = emptyList()
                     }
                     if (!watchKey.reset()) {
                         watchKey.cancel()
@@ -144,8 +154,8 @@ abstract class TabulatedFile(
 
     fun unloadIfNecessary() {
         if (state == State.LOADED && !keepInMemory) {
-            state = State.NOT_LOADED
             data = emptyList()
+            state = State.NOT_LOADED
         }
     }
 
@@ -215,6 +225,13 @@ abstract class TabulatedFile(
                         Spacer(Modifier.weight(1f))
                         if (state == State.LOADING) CircularProgressIndicator()
                     }
+                    if (state != State.LOADED) {
+                        Text(
+                            text = "PREVIEW",
+                            modifier = Modifier.align(Alignment.End),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Card(
                         modifier = Modifier.fillMaxSize()
                     ) {
@@ -222,10 +239,6 @@ abstract class TabulatedFile(
                             MapTable(derivedStateOf { data })
                         } else {
                             ListTable(observablePreview)
-                            if (state == State.NOT_LOADED) {
-                                state = State.LOADING
-                                load()
-                            }
                         }
                     }
                 }

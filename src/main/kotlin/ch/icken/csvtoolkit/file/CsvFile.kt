@@ -23,6 +23,7 @@ class CsvFile(
     override val headers =
         reader.open(file) {
             val possibleHeader = readNext()
+            //TODO check for duplicate headers
             if (possibleHeader == null) {
                 state = State.INVALID
                 listOf()
@@ -32,7 +33,7 @@ class CsvFile(
         }
     override val preview =
         reader.open(file) {
-            (0..10).mapNotNull { readNext() }
+            (0..14).mapNotNull { readNext() }
         }
     override val surrogate get() = CsvSurrogate(path, uuid, alias.text, keepInMemory, delimiter)
 
