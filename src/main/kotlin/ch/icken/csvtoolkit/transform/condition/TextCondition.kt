@@ -59,7 +59,7 @@ class TextCondition(
 
     private var column: String? by mutableStateOf(null)
     private var compareType by mutableStateOf(Type.EQ)
-    private var compareTo by mutableStateOf(TextFieldValue(""))
+    private var compareTo by mutableStateOf(TextFieldValue())
     private val compareText by derivedStateOf { compareTo.text.lowercaseIf { caseInsensitive } }
     private var caseInsensitive by mutableStateOf(false)
 

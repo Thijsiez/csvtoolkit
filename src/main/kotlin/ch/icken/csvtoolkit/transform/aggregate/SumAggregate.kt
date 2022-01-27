@@ -51,7 +51,7 @@ class SumAggregate(override val parentTransform: AggregateParentTransform) : Agg
     override val surrogate get() = SumSurrogate(column, asColumnName.text)
 
     private var column: String? by mutableStateOf(null)
-    private var asColumnName by mutableStateOf(TextFieldValue(""))
+    private var asColumnName by mutableStateOf(TextFieldValue())
 
     constructor(surrogate: SumSurrogate) : this(AggregateFosterParent) {
         column = surrogate.column

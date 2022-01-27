@@ -50,7 +50,7 @@ class RegexCondition(
     override val surrogate get() = RegexSurrogate(column, compareTo.text)
 
     private var column: String? by mutableStateOf(null)
-    private var compareTo by mutableStateOf(TextFieldValue(""))
+    private var compareTo by mutableStateOf(TextFieldValue())
     private val compareRegex by derivedStateOf { Regex(compareTo.text) }
 
     constructor(surrogate: RegexSurrogate) : this(ConditionFosterParent, null) {

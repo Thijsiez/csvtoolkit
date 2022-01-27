@@ -29,6 +29,7 @@ import ch.icken.csvtoolkit.transform.aggregate.SumAggregate
 import ch.icken.csvtoolkit.transform.condition.AndCondition
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.Condition.ConditionParent
+import ch.icken.csvtoolkit.transform.condition.ListCondition
 import ch.icken.csvtoolkit.transform.condition.NumericalCondition
 import ch.icken.csvtoolkit.transform.condition.OrCondition
 import ch.icken.csvtoolkit.transform.condition.RegexCondition
@@ -91,6 +92,7 @@ class ToolkitInstance() : CoroutineScope, Closeable {
                         subclass(OrCondition::class)
                     }
                     subclass(AndCondition::class)
+                    subclass(ListCondition::class)
                     subclass(NumericalCondition::class)
                     subclass(OrCondition::class)
                     subclass(RegexCondition::class)

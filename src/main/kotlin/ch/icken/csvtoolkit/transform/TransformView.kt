@@ -3,7 +3,7 @@ package ch.icken.csvtoolkit.transform
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -217,7 +217,7 @@ private fun TransformDefaultItemView(
     stateContent: @Composable RowScope.() -> Unit
 ) = Row(
     modifier = modifier
-        .combinedClickable(
+        .clickable(
             enabled = !instance.isDoingTheThing,
             onClick = { onEditTransform(transform) }
         )
@@ -287,7 +287,7 @@ fun TransformWarningIcon(message: String) {
     ) {
         Icon(
             imageVector = Icons.Default.Warning,
-            contentDescription = "Transform has a warning",
+            contentDescription = message,
             tint = Color.Yellow
         )
     }
@@ -300,7 +300,7 @@ fun TransformInvalidIcon(message: String) {
     ) {
         Icon(
             imageVector = Icons.Default.Warning,
-            contentDescription = "Transform is invalid",
+            contentDescription = message,
             tint = Color.Red
         )
     }

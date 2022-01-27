@@ -2,7 +2,7 @@ package ch.icken.csvtoolkit.transform.condition
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -29,10 +29,16 @@ fun ConditionItemView(
     onEditCondition: (Condition) -> Unit,
     modifier: Modifier = Modifier,
     stateContent: @Composable RowScope.() -> Unit = {
-        DefaultConditionStateContent(
-            context = context,
-            condition = condition
-        )
+        if (condition is ConditionCustomStateContent) {
+            condition.CustomStateContent(
+                context = context
+            )
+        } else {
+            DefaultConditionStateContent(
+                context = context,
+                condition = condition
+            )
+        }
     }
 ) {
     if (condition is ConditionCustomItemView) {
@@ -62,7 +68,7 @@ fun ConditionDefaultItemView(
     stateContent: @Composable RowScope.() -> Unit
 ) = Row(
     modifier = modifier
-        .combinedClickable(
+        .clickable(
             enabled = context.allowChanges,
             onClick = { onEditCondition(condition) }
         )
@@ -111,13 +117,26 @@ fun ConditionValidIcon() {
 }
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
+fun ConditionWarningIcon(message: String) {
+    TooltipArea(
+        tooltip = { Tooltip(message) }
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = message,
+            tint = Color.Yellow
+        )
+    }
+}
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
 fun ConditionInvalidIcon(message: String) {
     TooltipArea(
         tooltip = { Tooltip(message) }
     ) {
         Icon(
             imageVector = Icons.Default.Warning,
-            contentDescription = "Condition is invalid",
+            contentDescription = message,
             tint = Color.Red
         )
     }
@@ -129,5 +148,11 @@ interface ConditionCustomItemView {
         context: Condition.Context,
         onEditCondition: (Condition) -> Unit,
         modifier: Modifier
+    )
+}
+interface ConditionCustomStateContent {
+    @Composable
+    fun CustomStateContent(
+        context: Condition.Context
     )
 }

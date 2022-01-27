@@ -51,7 +51,7 @@ class AverageAggregate(override val parentTransform: AggregateParentTransform) :
     override val surrogate get() = AverageSurrogate(column, asColumnName.text)
 
     private var column: String? by mutableStateOf(null)
-    private var asColumnName by mutableStateOf(TextFieldValue(""))
+    private var asColumnName by mutableStateOf(TextFieldValue())
 
     constructor(surrogate: AverageSurrogate) : this(AggregateFosterParent) {
         column = surrogate.column

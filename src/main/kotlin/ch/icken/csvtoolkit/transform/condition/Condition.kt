@@ -56,6 +56,7 @@ abstract class Condition {
         val create: (parentTransform: ConditionParentTransform, parentCondition: ConditionParent?) -> Condition
     ) {
         AND("And", { transform, condition -> AndCondition(transform, condition) }),
+        LIST("List", { transform, condition -> ListCondition(transform, condition) }),
         NUMERICAL("Numerical", { transform, condition -> NumericalCondition(transform, condition) }),
         OR("Or", { transform, condition -> OrCondition(transform, condition) }),
         REGEX("RegEx", { transform, condition -> RegexCondition(transform, condition) }),

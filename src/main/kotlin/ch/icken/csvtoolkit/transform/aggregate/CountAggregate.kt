@@ -62,7 +62,7 @@ class CountAggregate(override val parentTransform: AggregateParentTransform) : A
     override val surrogate get() = CountSurrogate(column, asColumnName.text, distinct, caseInsensitive)
 
     private var column: String? by mutableStateOf(null)
-    private var asColumnName by mutableStateOf(TextFieldValue(""))
+    private var asColumnName by mutableStateOf(TextFieldValue())
     private var distinct by mutableStateOf(false)
     private var caseInsensitive by mutableStateOf(false)
 

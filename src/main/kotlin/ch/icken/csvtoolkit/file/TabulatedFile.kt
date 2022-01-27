@@ -83,7 +83,7 @@ abstract class TabulatedFile(
 
     @Transient
     protected val file = File(path)
-    protected var alias by mutableStateOf(TextFieldValue(""))
+    protected var alias by mutableStateOf(TextFieldValue())
     val name by derivedStateOf { alias.text.ifBlank { null } ?: file.nameWithoutExtension }
     var state by mutableStateOf(if (file.exists() && file.isFile) State.NOT_LOADED else State.INVALID); protected set
     val isValid by derivedStateOf { state != State.INVALID && state != State.LOADING }

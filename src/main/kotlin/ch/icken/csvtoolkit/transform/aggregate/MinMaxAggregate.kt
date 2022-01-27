@@ -56,7 +56,7 @@ class MinMaxAggregate(override val parentTransform: AggregateParentTransform) : 
     override val surrogate get() = MinMaxSurrogate(column, asColumnName.text, minimum)
 
     private var column: String? by mutableStateOf(null)
-    private var asColumnName by mutableStateOf(TextFieldValue(""))
+    private var asColumnName by mutableStateOf(TextFieldValue())
     private var minimum by mutableStateOf(true)
     private var interpretAs by mutableStateOf(InterpretAs.TEXT)
     private var caseInsensitive by mutableStateOf(false)

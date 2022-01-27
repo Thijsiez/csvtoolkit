@@ -50,7 +50,7 @@ class SetTransform(parent: Transform?) : ConditionalTransform(parent) {
     override val surrogate get() = SetSurrogate(column, setValue.text)
 
     private var column: String? by mutableStateOf(null)
-    private var setValue by mutableStateOf(TextFieldValue(""))
+    private var setValue by mutableStateOf(TextFieldValue())
 
     constructor(surrogate: SetSurrogate) : this(null) {
         column = surrogate.column

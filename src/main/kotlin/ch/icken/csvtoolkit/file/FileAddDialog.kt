@@ -55,7 +55,7 @@ fun FileAddDialog(
     titleText: String = "Add File"
 ) {
     var showOpenFileDialog by remember { mutableStateOf(false) }
-    var fileName by remember { mutableStateOf(TextFieldValue("")) }
+    var fileName by remember { mutableStateOf(TextFieldValue()) }
     var fileType by remember { mutableStateOf(Type.CSV) }
     var fileTypeCsvDelimiter by remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
     val fileIsValid by derivedStateOf { File(fileName.text).run { exists() && isFile } }

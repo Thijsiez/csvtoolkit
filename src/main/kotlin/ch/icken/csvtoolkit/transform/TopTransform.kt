@@ -44,7 +44,7 @@ class TopTransform() : Transform() {
     }
     override val surrogate get() = TopSurrogate(numberOfRows)
 
-    private var limitTo by mutableStateOf(TextFieldValue(""))
+    private var limitTo by mutableStateOf(TextFieldValue())
     private val numberOfRows by derivedStateOf { limitTo.text.interpretAsNumber().toInt() }
 
     constructor(surrogate: TopSurrogate) : this() {

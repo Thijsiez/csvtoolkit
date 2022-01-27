@@ -58,7 +58,7 @@ class NumericalCondition(
 
     private var column: String? by mutableStateOf(null)
     private var compareType by mutableStateOf(Type.EQ)
-    private var compareTo by mutableStateOf(TextFieldValue(""))
+    private var compareTo by mutableStateOf(TextFieldValue())
     private val compareDouble by derivedStateOf { compareTo.text.interpretAsNumber() }
 
     constructor(surrogate: NumericalSurrogate) : this(ConditionFosterParent, null) {
