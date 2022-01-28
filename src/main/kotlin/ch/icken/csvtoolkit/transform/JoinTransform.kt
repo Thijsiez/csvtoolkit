@@ -56,7 +56,7 @@ class JoinTransform() : Transform() {
         }
     }
     override val surrogate get() = JoinSurrogate(column, joinType, joinOnFile?.uuid, joinOnColumn, caseInsensitive)
-    override val usesFile get() = joinOnFile
+    override val usesFiles get() = setOfNotNull(joinOnFile)
 
     private var column: String? by mutableStateOf(null)
     private var joinType by mutableStateOf(Type.INNER)
@@ -148,10 +148,6 @@ class JoinTransform() : Transform() {
         }
         if (joinOnFileValue !in instance.files) {
             invalidMessage = "File to join on not available"
-            return false
-        }
-        if (!joinOnFileValue.isValid) {
-            invalidMessage = "Referenced file is invalid"
             return false
         }
         if (joinOnColumnName !in joinOnFileValue.headers) {

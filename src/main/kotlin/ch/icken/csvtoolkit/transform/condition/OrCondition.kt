@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
+import ch.icken.csvtoolkit.flatMapToSet
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
@@ -58,11 +59,13 @@ class OrCondition(
         append("At least one of the following")
     }
     override val surrogate get() = OrSurrogate(conditions)
+    override val usesFiles get() = conditions.flatMapToSet { it.usesFiles }
 
     constructor(surrogate: OrSurrogate) : this(ConditionFosterParent, null) {
         conditions.addAll(surrogate.conditions)
     }
 
+    override suspend fun prepareChecks() = conditions.all { it.prepareChecks() }
     override fun check(row: Map<String, String>) = conditions.any { it.check(row) }
 
     override fun isValid(context: Context): Boolean {
@@ -240,6 +243,9 @@ class OrCondition(
         override fun deserialize(decoder: Decoder): OrCondition {
             return OrCondition(decoder.decodeSerializableValue(OrSurrogate.serializer()))
         }
+    }
+    override fun postDeserialization(context: Context) {
+        conditions.forEach { it.postDeserialization(context) }
     }
     override fun adopt(parentTransform: ConditionParentTransform, parentCondition: ConditionParent?): Condition {
         return OrCondition(parentTransform, parentCondition).also { copy ->

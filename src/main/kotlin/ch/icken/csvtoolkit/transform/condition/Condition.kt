@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.AnnotatedString
+import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -16,9 +17,11 @@ abstract class Condition {
     abstract val parentCondition: ConditionParent?
     abstract val description: AnnotatedString
     abstract val surrogate: ConditionSurrogate
+    open val usesFiles = setOf<TabulatedFile>()
 
     var invalidMessage by mutableStateOf(""); protected set
 
+    open suspend fun prepareChecks(): Boolean = true
     abstract fun check(row: Map<String, String>): Boolean
 
     abstract fun isValid(context: Context): Boolean
@@ -30,6 +33,7 @@ abstract class Condition {
         onDelete: () -> Unit
     )
 
+    open fun postDeserialization(context: Context) {}
     abstract fun adopt(parentTransform: ConditionParentTransform, parentCondition: ConditionParent?): Condition
 
     @Serializable
@@ -47,6 +51,7 @@ abstract class Condition {
     }
     data class Context(
         val headers: List<String>,
+        val files: List<TabulatedFile>,
         val allowChanges: Boolean
     )
 
@@ -56,6 +61,7 @@ abstract class Condition {
         val create: (parentTransform: ConditionParentTransform, parentCondition: ConditionParent?) -> Condition
     ) {
         AND("And", { transform, condition -> AndCondition(transform, condition) }),
+        FILE("File", { transform, condition -> FileCondition(transform, condition) }),
         LIST("List", { transform, condition -> ListCondition(transform, condition) }),
         NUMERICAL("Numerical", { transform, condition -> NumericalCondition(transform, condition) }),
         OR("Or", { transform, condition -> OrCondition(transform, condition) }),

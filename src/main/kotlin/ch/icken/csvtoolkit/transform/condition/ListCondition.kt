@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.material.Checkbox
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
@@ -64,7 +65,7 @@ class ListCondition(
         }
         append(" values")
     }
-    override val surrogate get() = ListSurrogate(column, compareTo)
+    override val surrogate get() = ListSurrogate(column, compareTo, caseInsensitive)
 
     private var column: String? by mutableStateOf(null)
     private val compareTo = mutableStateListOf<String>()
@@ -75,6 +76,7 @@ class ListCondition(
         column = surrogate.column
         compareTo.clear()
         compareTo.addAll(surrogate.compareTo)
+        caseInsensitive = surrogate.caseInsensitive
     }
 
     override fun check(row: Map<String, String>): Boolean {
@@ -183,6 +185,17 @@ class ListCondition(
                 ) {
                     Text("ADD VALUE")
                 }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = caseInsensitive,
+                        onCheckedChange = { isChecked ->
+                            caseInsensitive = isChecked
+                        }
+                    )
+                    Text("Case Insensitive")
+                }
             }
         }
 
@@ -225,7 +238,8 @@ class ListCondition(
     @SerialName("list")
     class ListSurrogate(
         val column: String?,
-        val compareTo: List<String>
+        val compareTo: List<String>,
+        val caseInsensitive: Boolean
     ) : ConditionSurrogate
     object ListSerializer : KSerializer<ListCondition> {
         override val descriptor = ListSurrogate.serializer().descriptor
@@ -243,6 +257,7 @@ class ListCondition(
             copy.column = column
             copy.compareTo.clear()
             copy.compareTo.addAll(compareTo)
+            copy.caseInsensitive = caseInsensitive
         }
     }
 }

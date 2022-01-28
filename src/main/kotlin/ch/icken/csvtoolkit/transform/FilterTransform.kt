@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.flatMapToSet
 import ch.icken.csvtoolkit.onEach
 import ch.icken.csvtoolkit.transform.FilterTransform.FilterSerializer
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
@@ -69,6 +70,7 @@ class FilterTransform() : ConditionParentTransform(), TransformCustomItemView {
         if (conditions.size != 1) append('s')
     }
     override val surrogate get() = FilterSurrogate(conditions)
+    override val usesFiles get() = conditions.flatMapToSet { it.usesFiles }
 
     constructor(surrogate: FilterSurrogate) : this() {
         conditions.addAll(surrogate.conditions.map { it.adopt(this, null) })
@@ -80,6 +82,7 @@ class FilterTransform() : ConditionParentTransform(), TransformCustomItemView {
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
         if (conditions.isEmpty()) return@coroutineScope intermediate
+        if (!conditions.all { it.prepareChecks() }) return@coroutineScope intermediate
         return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
             async {
                 (chunk as MutableList).onEach { row, iterator ->
@@ -283,5 +286,9 @@ class FilterTransform() : ConditionParentTransform(), TransformCustomItemView {
         override fun deserialize(decoder: Decoder): FilterTransform {
             return FilterTransform(decoder.decodeSerializableValue(FilterSurrogate.serializer()))
         }
+    }
+    override fun postDeserialization(instance: ToolkitInstance) {
+        val context = getConditionContext(instance)
+        conditions.forEach { it.postDeserialization(context) }
     }
 }

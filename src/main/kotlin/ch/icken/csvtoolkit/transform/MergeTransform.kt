@@ -66,7 +66,7 @@ class MergeTransform() : Transform(), TransformCustomStateContent {
         append(" columns")
     }
     override val surrogate get() = MergeSurrogate(mergeType, mergeWithFile?.uuid, mergeColumns)
-    override val usesFile get() = mergeWithFile
+    override val usesFiles get() = setOfNotNull(mergeWithFile)
 
     private var mergeType by mutableStateOf(Type.RANDOM)
     private var mergeWithFile: TabulatedFile? by mutableStateOf(null)
@@ -128,10 +128,6 @@ class MergeTransform() : Transform(), TransformCustomStateContent {
         }
         if (mergeWithFileValue !in instance.files) {
             invalidMessage = "File to merge with not available"
-            return false
-        }
-        if (!mergeWithFileValue.isValid) {
-            invalidMessage = "Referenced file is invalid"
             return false
         }
         if (mergeColumns.any { (columnName, _) -> columnName !in mergeWithFileValue.headers }) {

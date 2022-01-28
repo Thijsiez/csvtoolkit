@@ -42,3 +42,7 @@ fun KeyEvent.isDown(checkKey: Key, action: () -> Unit) =
     if (type == KeyEventType.KeyDown && key == checkKey) { action(); true } else false
 
 fun <T> Iterable<T>.filterIn(items: Collection<T>) = filter { it in items }
+
+inline fun <T, R> Iterable<T>.flatMapToSet(transform: (T) -> Iterable<R>): Set<R> {
+    return flatMapTo(LinkedHashSet(), transform)
+}

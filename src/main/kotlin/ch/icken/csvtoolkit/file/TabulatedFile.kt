@@ -203,8 +203,8 @@ abstract class TabulatedFile(
                             value = alias,
                             onValueChange = { alias = it },
                             modifier = Modifier.padding(bottom = 8.dp),
-                            label = { Text("Alias") },
-                            placeholder = { Text(file.nameWithoutExtension) },
+                            label = { Text(file.nameWithoutExtension) },
+                            placeholder = { Text("Alias") },
                             singleLine = true
                         )
                         TooltipArea(

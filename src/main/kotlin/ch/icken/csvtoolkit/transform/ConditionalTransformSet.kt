@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.flatMapToSet
 import ch.icken.csvtoolkit.transform.ConditionalTransformSet.ConditionalSetSerializer
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.transform.aggregate.Aggregate
@@ -75,6 +76,7 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
         append(" ${if (conditions.size != 1) "conditions are" else "condition is"} met")
     }
     override val surrogate get() = ConditionalSetSurrogate(conditions, transforms)
+    override val usesFiles get() = transforms.flatMapToSet { it.usesFiles } + conditions.flatMapToSet { it.usesFiles }
 
     private val transforms = mutableStateListOf<ConditionalTransform>()
 
@@ -94,6 +96,7 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
         intermediate: MutableList<MutableMap<String, String>>
     ): MutableList<MutableMap<String, String>> = coroutineScope {
         if (transforms.isEmpty()) return@coroutineScope intermediate
+        if (!conditions.all { it.prepareChecks() }) return@coroutineScope intermediate
         return@coroutineScope intermediate.chunked(chunkSize(intermediate.size)).map { chunk ->
             async {
                 chunk.onEach { row ->
@@ -427,8 +430,9 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
             return ConditionalTransformSet(decoder.decodeSerializableValue(ConditionalSetSurrogate.serializer()))
         }
     }
-
     override fun postDeserialization(instance: ToolkitInstance) {
         transforms.forEach { it.postDeserialization(instance) }
+        val context = getConditionContext(instance)
+        conditions.forEach { it.postDeserialization(context) }
     }
 }

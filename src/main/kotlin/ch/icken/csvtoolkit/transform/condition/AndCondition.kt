@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
+import ch.icken.csvtoolkit.flatMapToSet
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
@@ -58,11 +59,13 @@ class AndCondition(
         append("All of the following")
     }
     override val surrogate get() = AndSurrogate(conditions)
+    override val usesFiles get() = conditions.flatMapToSet { it.usesFiles }
 
     constructor(surrogate: AndSurrogate) : this(ConditionFosterParent, null) {
         conditions.addAll(surrogate.conditions)
     }
 
+    override suspend fun prepareChecks() = conditions.all { it.prepareChecks() }
     override fun check(row: Map<String, String>) = conditions.all { it.check(row) }
 
     override fun isValid(context: Context): Boolean {
@@ -240,6 +243,9 @@ class AndCondition(
         override fun deserialize(decoder: Decoder): AndCondition {
             return AndCondition(decoder.decodeSerializableValue(AndSurrogate.serializer()))
         }
+    }
+    override fun postDeserialization(context: Context) {
+        conditions.forEach { it.postDeserialization(context) }
     }
     override fun adopt(parentTransform: ConditionParentTransform, parentCondition: ConditionParent?): Condition {
         return AndCondition(parentTransform, parentCondition).also { copy ->

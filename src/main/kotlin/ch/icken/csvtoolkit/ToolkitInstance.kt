@@ -29,6 +29,7 @@ import ch.icken.csvtoolkit.transform.aggregate.SumAggregate
 import ch.icken.csvtoolkit.transform.condition.AndCondition
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.transform.condition.Condition.ConditionParent
+import ch.icken.csvtoolkit.transform.condition.FileCondition
 import ch.icken.csvtoolkit.transform.condition.ListCondition
 import ch.icken.csvtoolkit.transform.condition.NumericalCondition
 import ch.icken.csvtoolkit.transform.condition.OrCondition
@@ -92,6 +93,7 @@ class ToolkitInstance() : CoroutineScope, Closeable {
                         subclass(OrCondition::class)
                     }
                     subclass(AndCondition::class)
+                    subclass(FileCondition::class)
                     subclass(ListCondition::class)
                     subclass(NumericalCondition::class)
                     subclass(OrCondition::class)
@@ -127,7 +129,7 @@ class ToolkitInstance() : CoroutineScope, Closeable {
     val baseFile by derivedStateOf { baseFileOverride ?: files.firstOrNull() ?: throw NoSuchElementException() }
 
     val allowDoingTheThing by derivedStateOf {
-        files.size >= 1 && files.filterIn(transforms.mapNotNull { it.usesFile }).all { it.isValid } &&
+        files.size >= 1 && files.filterIn(transforms.flatMapToSet { it.usesFiles }).all { it.isValid } &&
                 transforms.size >= 1 && transforms.all { it.isValid(this) }
     }
     val allowDataExport by derivedStateOf { data.isNotEmpty() && data.first().isNotEmpty() }
@@ -137,7 +139,8 @@ class ToolkitInstance() : CoroutineScope, Closeable {
     constructor(surrogate: InstanceSurrogate) : this() {
         files.addAll(surrogate.files.onEach { it.watchForChanges() })
         baseFileOverride = files.find { it.uuid == surrogate.baseFileUuid }
-        transforms.addAll(surrogate.transforms.onEach { it.postDeserialization(this) })
+        transforms.addAll(surrogate.transforms)
+        transforms.forEach { it.postDeserialization(this) }
     }
 
     fun headersUpTo(thisTransform: Transform, inclusive: Boolean = false): List<String> {
@@ -151,7 +154,7 @@ class ToolkitInstance() : CoroutineScope, Closeable {
     fun theThing() = launch {
         isDoingTheThing = true
         val finalData = baseFile.letData { data ->
-            transforms.foldSuspendable(data.map { it.toMutableMap() }.toMutableList()) { intermediateData, transform ->
+            transforms.foldSuspendable(data.map { it.toMutableMap() } as MutableList) { intermediateData, transform ->
                 currentlyProcessingTransform = transform
                 transform.track { doTheActualThing(intermediateData) }
             }

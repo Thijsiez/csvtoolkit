@@ -29,7 +29,7 @@ abstract class Transform {
 
     abstract val description: AnnotatedString
     abstract val surrogate: TransformSurrogate
-    open val usesFile: TabulatedFile? = null
+    open val usesFiles = setOf<TabulatedFile>()
 
     var invalidMessage by mutableStateOf(""); protected set
     var lastRunStats: Statistics? by mutableStateOf(null); protected set
@@ -66,6 +66,7 @@ abstract class Transform {
     fun getConditionContext(instance: ToolkitInstance): Condition.Context {
         return Condition.Context(
             headers = instance.headersUpTo(this),
+            files = instance.files,
             allowChanges = !instance.isDoingTheThing
         )
     }

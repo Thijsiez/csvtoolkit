@@ -53,7 +53,7 @@ class MinMaxAggregate(override val parentTransform: AggregateParentTransform) : 
         }
     }
     override val columnName get() = asColumnName.text.ifBlank { "${if (minimum) "MIN" else "MAX"}($column)" }
-    override val surrogate get() = MinMaxSurrogate(column, asColumnName.text, minimum)
+    override val surrogate get() = MinMaxSurrogate(column, asColumnName.text, minimum, interpretAs, caseInsensitive)
 
     private var column: String? by mutableStateOf(null)
     private var asColumnName by mutableStateOf(TextFieldValue())
@@ -65,6 +65,8 @@ class MinMaxAggregate(override val parentTransform: AggregateParentTransform) : 
         column = surrogate.column
         asColumnName = TextFieldValue(surrogate.asColumnName)
         minimum = surrogate.minimum
+        interpretAs = surrogate.interpretAs
+        caseInsensitive = surrogate.caseInsensitive
     }
 
     override fun aggregate(group: List<Map<String, String>>): String {
@@ -192,7 +194,9 @@ class MinMaxAggregate(override val parentTransform: AggregateParentTransform) : 
     class MinMaxSurrogate(
         override val column: String?,
         override val asColumnName: String,
-        val minimum: Boolean
+        val minimum: Boolean,
+        val interpretAs: InterpretAs,
+        val caseInsensitive: Boolean
     ) : AggregateSurrogate
     object MinMaxSerializer : KSerializer<MinMaxAggregate> {
         override val descriptor = MinMaxSurrogate.serializer().descriptor
@@ -210,6 +214,8 @@ class MinMaxAggregate(override val parentTransform: AggregateParentTransform) : 
             copy.column = column
             copy.asColumnName = asColumnName
             copy.minimum = minimum
+            copy.interpretAs = interpretAs
+            copy.caseInsensitive = caseInsensitive
         }
     }
 }
