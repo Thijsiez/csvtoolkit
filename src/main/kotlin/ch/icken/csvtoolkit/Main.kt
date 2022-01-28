@@ -22,7 +22,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -47,6 +50,7 @@ import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
 import ch.icken.csvtoolkit.ui.DeleteConfirmationContent
 import ch.icken.csvtoolkit.ui.MapTable
 import ch.icken.csvtoolkit.ui.OpenWindowConfirmation
+import ch.icken.csvtoolkit.util.onMac
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
@@ -59,6 +63,7 @@ fun main() = application {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun Window(context: WindowContext) = Window(
     onCloseRequest = context::closeProject,
@@ -82,25 +87,29 @@ private fun Window(context: WindowContext) = Window(
         ) {
             Item(
                 text = "New",
-                mnemonic = 'N'
+                mnemonic = 'N',
+                shortcut = KeyShortcut(Key.N, ctrl = !onMac, meta = onMac)
             ) {
                 context.newProject()
             }
             Item(
                 text = "Open",
-                mnemonic = 'O'
+                mnemonic = 'O',
+                shortcut = KeyShortcut(Key.O, ctrl = !onMac, meta = onMac)
             ) {
                 showOpenProjectFileDialog = true
             }
             Item(
                 text = "Save",
-                mnemonic = 'S'
+                mnemonic = 'S',
+                shortcut = KeyShortcut(Key.S, ctrl = !onMac, meta = onMac)
             ) {
                 showSaveProjectFileDialog = true
             }
             Item(
                 text = "Close",
-                mnemonic = 'C'
+                mnemonic = 'C',
+                shortcut = KeyShortcut(Key.W, ctrl = !onMac, meta = onMac)
             ) {
                 context.closeProject()
             }
@@ -108,7 +117,8 @@ private fun Window(context: WindowContext) = Window(
             Item(
                 text = "Export",
                 enabled = context.instance.allowDataExport,
-                mnemonic = 'E'
+                mnemonic = 'E',
+                shortcut = KeyShortcut(Key.E, ctrl = !onMac, meta = onMac)
             ) {
                 showExportDataFileDialog = true
             }
