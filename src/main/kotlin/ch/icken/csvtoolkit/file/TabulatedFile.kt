@@ -251,7 +251,7 @@ abstract class TabulatedFile(
         vararg val extensions: String
     ) {
         CSV("CSV", "csv"),
-        //TODO EXCEL("Excel")
+        EXCEL("Excel", "xls", "xlsx")
     }
 
     enum class State {

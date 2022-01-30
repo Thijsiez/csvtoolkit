@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import ch.icken.csvtoolkit.ToolkitInstance.InstanceSerializer
 import ch.icken.csvtoolkit.file.CsvFile
+import ch.icken.csvtoolkit.file.ExcelFile
 import ch.icken.csvtoolkit.file.TabulatedFile
 import ch.icken.csvtoolkit.transform.ConditionalTransformSet
 import ch.icken.csvtoolkit.transform.FilterTransform
@@ -65,6 +66,7 @@ class ToolkitInstance() : CoroutineScope, Closeable {
             serializersModule = SerializersModule {
                 polymorphic(TabulatedFile::class) {
                     subclass(CsvFile::class)
+                    subclass(ExcelFile::class)
                 }
                 polymorphic(Transform::class) {
                     polymorphic(AggregateParentTransform::class) {

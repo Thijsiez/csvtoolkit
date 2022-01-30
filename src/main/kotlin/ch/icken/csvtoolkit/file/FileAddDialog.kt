@@ -58,12 +58,17 @@ fun FileAddDialog(
     var fileName by remember { mutableStateOf(TextFieldValue()) }
     var fileType by remember { mutableStateOf(Type.CSV) }
     var fileTypeCsvDelimiter by remember { mutableStateOf(CsvFile.Delimiter.COMMA) }
+    var fileTypeExcelSheetName: String? by remember { mutableStateOf(null) }
     val fileIsValid by derivedStateOf { File(fileName.text).run { exists() && isFile } }
     val file by derivedStateOf {
         when (fileType) {
             Type.CSV -> CsvFile(
                 path = fileName.text,
                 delimiter = fileTypeCsvDelimiter
+            )
+            Type.EXCEL -> ExcelFile(
+                path = fileName.text,
+                sheetName = fileTypeExcelSheetName
             )
         }
     }
@@ -145,6 +150,19 @@ fun FileAddDialog(
                                 label = "Delimiter"
                             )
                         }
+                        Type.EXCEL -> {
+                            file.let { excelFile ->
+                                if (excelFile is ExcelFile && excelFile.sheetNames.size > 1) {
+                                    Spinner(
+                                        items = excelFile.sheetNames,
+                                        selectedItem = { fileTypeExcelSheetName },
+                                        onItemSelected = { fileTypeExcelSheetName = it },
+                                        itemTransform = { it ?: "-" },
+                                        label = "Sheet"
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 Text(
@@ -169,8 +187,9 @@ fun FileAddDialog(
                 runCatching {
                     val list = dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
                     list.filterIsInstance<File>().takeIf { it.size == list.size } ?: emptyList()
-                }.getOrDefault(emptyList()).firstOrNull()?.let {
-                    fileName = TextFieldValue(it.absolutePath)
+                }.getOrDefault(emptyList()).firstOrNull()?.let { file ->
+                    fileName = TextFieldValue(file.absolutePath)
+                    fileType = Type.values().find { file.extension in it.extensions } ?: Type.CSV
                 }
             }
         }
@@ -180,9 +199,7 @@ fun FileAddDialog(
         OpenTabulatedFileDialog { selectedFile ->
             showOpenFileDialog = false
             fileName = TextFieldValue(selectedFile.absolutePath)
-            when (selectedFile.extension) {
-                in Type.CSV.extensions -> fileType = Type.CSV
-            }
+            fileType = Type.values().find { selectedFile.extension in it.extensions } ?: Type.CSV
         }
     }
 }
