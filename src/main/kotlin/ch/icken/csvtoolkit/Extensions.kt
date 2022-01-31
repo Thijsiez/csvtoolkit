@@ -1,6 +1,5 @@
 package ch.icken.csvtoolkit
 
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -22,12 +21,6 @@ suspend fun <T, R> Iterable<T>.foldSuspendable(initial: R, operation: suspend (R
 inline fun <T, C : MutableIterable<T>> C.onEach(action: (T, MutableIterator<T>) -> Unit): C {
     val iterator = this.iterator()
     return apply { while (iterator.hasNext()) action(iterator.next(), iterator) }
-}
-
-fun LazyListState.calculateOffset(itemWidths: List<Float>, density: Float): Float {
-    if (itemWidths.isEmpty()) return 0f
-    return (itemWidths.subList(0, firstVisibleItemIndex).takeIf { it.isNotEmpty() }
-        ?.reduce { total, width -> total + width } ?: 0f) + (firstVisibleItemScrollOffset / density)
 }
 
 inline fun <E> MutableList<E>.set(index: Int, newElement: (oldElement: E) -> E) {
