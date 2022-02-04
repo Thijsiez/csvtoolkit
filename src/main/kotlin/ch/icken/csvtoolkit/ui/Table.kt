@@ -129,7 +129,7 @@ private fun <C> Table(
     val horizontalState = rememberLazyListState()
     val verticalState = rememberLazyListState()
     val localDensity = LocalDensity.current.density
-    val rowNumberColumnWidth = data.size.length() * 10 + 16
+    val rowNumberColumnWidth = data.size.length() * 8 + 8
 
     Row {
         CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.body2) {
@@ -158,8 +158,9 @@ private fun <C> Table(
                             ) {
                                 Text(
                                     text = (index + 1).toString(),
-                                    modifier = Modifier.padding(horizontal = 8.dp),
-                                    color = MaterialTheme.colors.onSurface.copy(alpha = .38f)
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = .38f),
+                                    style = MaterialTheme.typography.caption
                                 )
                             }
                         }
@@ -177,8 +178,9 @@ private fun <C> Table(
                 modifier = Modifier.weight(1f)
             ) {
                 Surface(
-                    //Draw the headers above the data
-                    modifier = Modifier.zIndex(1f),
+                    modifier = Modifier.fillMaxWidth()
+                        //Draw the headers above the data
+                        .zIndex(1f),
                     elevation = if (!verticalState.isHome) 8.dp else 2.dp
                 ) {
                     LazyRow(

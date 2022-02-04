@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Checkbox
+import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,7 +44,9 @@ class FileCondition(
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
             append(column ?: "?")
         }
-        append(" is in ")
+        append(" is")
+        if (!inFile) append(" not")
+        append(" in ")
         withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
             append(compareFile?.name ?: "?")
         }
@@ -54,12 +57,13 @@ class FileCondition(
             append(compareColumn ?: "?")
         }
     }
-    override val surrogate get() = FileSurrogate(column, compareFile?.uuid, compareColumn, caseInsensitive)
+    override val surrogate get() = FileSurrogate(column, compareFile?.uuid, compareColumn, inFile, caseInsensitive)
     override val usesFiles get() = setOfNotNull(compareFile)
 
     private var column: String? by mutableStateOf(null)
     private var compareFile: TabulatedFile? by mutableStateOf(null)
     private var compareColumn: String? by mutableStateOf(null)
+    private var inFile by mutableStateOf(true)
     private var caseInsensitive by mutableStateOf(false)
 
     //Used to find file when loading from project file
@@ -71,6 +75,7 @@ class FileCondition(
         column = surrogate.column
         compareFileUuid = surrogate.compareFileUuid
         compareColumn = surrogate.compareColumn
+        inFile = surrogate.inFile
         caseInsensitive = surrogate.caseInsensitive
     }
 
@@ -85,7 +90,7 @@ class FileCondition(
     override fun check(row: Map<String, String>): Boolean {
         val columnName = column ?: return false
         val referenceText = row[columnName]?.lowercaseIf { caseInsensitive } ?: return false
-        return compareDataLookup.any { referenceText == it }
+        return compareDataLookup.contains(referenceText) == inFile
     }
 
     override fun isValid(context: Context): Boolean {
@@ -132,7 +137,7 @@ class FileCondition(
             onHide = onHide,
             onDelete = onDelete,
             state = rememberDialogState(
-                size = DpSize(640.dp, Dp.Unspecified)
+                size = DpSize(720.dp, Dp.Unspecified)
             )
         ) {
             Column(
@@ -151,7 +156,12 @@ class FileCondition(
                         itemTransform = { it ?: "-" },
                         label = "Reference Column"
                     )
-                    Text("is in")
+                    OutlinedButton(
+                        onClick = { inFile = !inFile },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(if (inFile) "IS IN" else "IS NOT IN")
+                    }
                     Spinner(
                         items = context.files,
                         selectedItem = { compareFile },
@@ -188,6 +198,7 @@ class FileCondition(
         val column: String?,
         val compareFileUuid: String?,
         val compareColumn: String?,
+        val inFile: Boolean,
         val caseInsensitive: Boolean
     ) : ConditionSurrogate
     object FileSerializer : KSerializer<FileCondition> {
@@ -209,6 +220,7 @@ class FileCondition(
             copy.column = column
             copy.compareFile = compareFile
             copy.compareColumn = compareColumn
+            copy.inFile = inFile
             copy.caseInsensitive = caseInsensitive
             copy.compareFileUuid = compareFileUuid
         }

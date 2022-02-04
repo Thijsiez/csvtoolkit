@@ -130,7 +130,7 @@ class MinMaxAggregate(override val parentTransform: AggregateParentTransform) : 
                     OutlinedButton(
                         onClick = { minimum = !minimum }
                     ) {
-                        Text(if (minimum) "Min" else "Max")
+                        Text(if (minimum) "MIN" else "MAX")
                     }
                     Text("of")
                     Spinner(
