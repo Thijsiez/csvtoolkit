@@ -55,7 +55,6 @@ abstract class Condition {
         val allowChanges: Boolean
     )
 
-    @Suppress("unused")
     enum class Type(
         val uiName: String,
         val create: (parentTransform: ConditionParentTransform, parentCondition: ConditionParent?) -> Condition

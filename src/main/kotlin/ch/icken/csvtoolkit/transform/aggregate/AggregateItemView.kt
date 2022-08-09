@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ch.icken.csvtoolkit.ui.Tooltip
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AggregateItemView(
     context: Aggregate.Context,

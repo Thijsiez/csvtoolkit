@@ -39,3 +39,5 @@ fun <T> Iterable<T>.filterIn(items: Collection<T>) = filter { it in items }
 inline fun <T, R> Iterable<T>.flatMapToSet(transform: (T) -> Iterable<R>): Set<R> {
     return flatMapTo(LinkedHashSet(), transform)
 }
+
+fun <E> MutableList<E>.move(fromIndex: Int, toIndex: Int) = add(toIndex, removeAt(fromIndex))

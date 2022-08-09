@@ -1,5 +1,6 @@
 package ch.icken.csvtoolkit.transform
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.VerticalScrollbar
@@ -36,16 +37,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.move
 import ch.icken.csvtoolkit.transform.Transform.ConditionalTransform
 import ch.icken.csvtoolkit.transform.aggregate.Aggregate
 import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Tooltip
-import ch.icken.csvtoolkit.ui.reorderableItemModifier
-import org.burnoutcrew.reorderable.move
-import org.burnoutcrew.reorderable.rememberReorderState
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -61,7 +64,9 @@ fun TransformView(
         modifier = Modifier.fillMaxWidth()
     ) {
         var expanded by remember { mutableStateOf(false) }
-        val reorderState = rememberReorderState()
+        val reorderState = rememberReorderableLazyListState(onMove = { from, to ->
+            instance.transforms.move(from.index, to.index)
+        })
 
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -122,31 +127,29 @@ fun TransformView(
         }
         Box {
             LazyColumn(
-                modifier = Modifier
-                    .reorderable(
-                        state = reorderState,
-                        onMove = { from, to ->
-                            instance.transforms.move(from.index, to.index)
-                        }
-                    ),
+                modifier = Modifier.reorderable(reorderState)
+                    .detectReorderAfterLongPress(reorderState),
                 state = reorderState.listState
             ) {
                 items(instance.transforms, { it }) {
-                    TooltipArea(
-                        tooltip = {
-                            it.lastRunStats?.let { stats ->
-                                Tooltip(stats.text)
+                    ReorderableItem(reorderState, key = it) { isDragging ->
+                        val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+                        TooltipArea(
+                            tooltip = {
+                                it.lastRunStats?.let { stats ->
+                                    Tooltip(stats.text)
+                                }
                             }
+                        ) {
+                            TransformItemView(
+                                instance = instance,
+                                transform = it,
+                                onEditTransform = onEditTransform,
+                                onEditAggregate = onEditAggregate,
+                                onEditCondition = onEditCondition,
+                                modifier = Modifier.shadow(elevation.value)
+                            )
                         }
-                    ) {
-                        TransformItemView(
-                            instance = instance,
-                            transform = it,
-                            onEditTransform = onEditTransform,
-                            onEditAggregate = onEditAggregate,
-                            onEditCondition = onEditCondition,
-                            modifier = Modifier.reorderableItemModifier(reorderState, it)
-                        )
                     }
                 }
             }
@@ -207,7 +210,6 @@ fun TransformItemView(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransformDefaultItemView(
     instance: ToolkitInstance,

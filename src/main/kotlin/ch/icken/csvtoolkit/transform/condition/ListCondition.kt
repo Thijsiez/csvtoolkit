@@ -1,5 +1,6 @@
 package ch.icken.csvtoolkit.transform.condition
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.lowercaseIf
+import ch.icken.csvtoolkit.move
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
@@ -46,8 +49,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.burnoutcrew.reorderable.move
-import org.burnoutcrew.reorderable.rememberReorderState
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 
 @Serializable(with = ListSerializer::class)
@@ -107,7 +111,9 @@ class ListCondition(
         onHide: () -> Unit,
         onDelete: () -> Unit
     ) {
-        val reorderState = rememberReorderState()
+        val reorderState = rememberReorderableLazyListState(onMove = { from, to ->
+            compareTo.move(from.index, to.index)
+        })
         var showEditValueDialogForIndex by remember { mutableStateOf(-1) }
         var editValue by remember { mutableStateOf(TextFieldValue()) }
 
@@ -141,34 +147,34 @@ class ListCondition(
                     modifier = Modifier.weight(1f)
                 ) {
                     LazyColumn(
-                        modifier = Modifier.reorderable(
-                            state = reorderState,
-                            onMove = { from, to ->
-                                compareTo.move(from.index, to.index)
-                            }
-                        ),
+                        modifier = Modifier.reorderable(reorderState)
+                            .detectReorderAfterLongPress(reorderState),
                         state = reorderState.listState
                     ) {
-                        itemsIndexed(compareTo) { index, value ->
-                            Row(
-                                modifier = Modifier
-                                    .clickable(
-                                        onClick = { showEditValueDialogForIndex = index }
+                        itemsIndexed(compareTo, { _, value -> value }) { index, value ->
+                            ReorderableItem(reorderState, key = value) { isDragging ->
+                                val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+                                Row(
+                                    modifier = Modifier
+                                        .clickable(
+                                            onClick = { showEditValueDialogForIndex = index }
+                                        )
+                                        .fillMaxWidth()
+                                        .height(40.dp)
+                                        .padding(start = 16.dp)
+                                        .shadow(elevation.value),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "-",
+                                        color = Color.Gray
                                     )
-                                    .fillMaxWidth()
-                                    .height(40.dp)
-                                    .padding(start = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "-",
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = value,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                    Text(
+                                        text = value,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }

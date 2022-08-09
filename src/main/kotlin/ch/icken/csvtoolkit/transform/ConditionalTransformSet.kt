@@ -1,6 +1,6 @@
 package ch.icken.csvtoolkit.transform
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
 import ch.icken.csvtoolkit.flatMapToSet
+import ch.icken.csvtoolkit.move
 import ch.icken.csvtoolkit.transform.ConditionalTransformSet.ConditionalSetSerializer
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
 import ch.icken.csvtoolkit.transform.aggregate.Aggregate
@@ -49,7 +51,6 @@ import ch.icken.csvtoolkit.ui.Confirmation
 import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
 import ch.icken.csvtoolkit.ui.DeleteConfirmationContent
 import ch.icken.csvtoolkit.ui.VerticalDivider
-import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -58,8 +59,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.burnoutcrew.reorderable.move
-import org.burnoutcrew.reorderable.rememberReorderState
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 
 @Serializable(with = ConditionalSetSerializer::class)
@@ -127,7 +129,6 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
 
     fun remove(transform: ConditionalTransform) = transforms.remove(transform)
 
-    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun CustomItemView(
         instance: ToolkitInstance,
@@ -231,9 +232,13 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
         onDelete: () -> Unit
     ) {
         var conditionsExpanded by remember { mutableStateOf(false) }
-        val conditionReorderState = rememberReorderState()
+        val conditionReorderState = rememberReorderableLazyListState(onMove = { from, to ->
+            conditions.move(from.index, to.index)
+        })
         var transformsExpanded by remember { mutableStateOf(false) }
-        val transformReorderState = rememberReorderState()
+        val transformReorderState = rememberReorderableLazyListState(onMove = { from, to ->
+            transforms.move(from.index, to.index)
+        })
         var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
         var showEditTransformDialogFor: ConditionalTransform? by remember { mutableStateOf(null) }
         var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
@@ -264,21 +269,20 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
                         modifier = Modifier.weight(1f)
                     ) {
                         LazyColumn(
-                            modifier = Modifier.reorderable(
-                                state = conditionReorderState,
-                                onMove = { from, to ->
-                                    conditions.move(from.index, to.index)
-                                }
-                            ),
+                            modifier = Modifier.reorderable(conditionReorderState)
+                                .detectReorderAfterLongPress(conditionReorderState),
                             state = conditionReorderState.listState
                         ) {
                             items(conditions, { it }) { condition ->
-                                ConditionItemView(
-                                    context = getConditionContext(instance),
-                                    condition = condition,
-                                    onEditCondition = { showEditConditionDialogFor = it },
-                                    modifier = Modifier.reorderableItemModifier(conditionReorderState, condition)
-                                )
+                                ReorderableItem(conditionReorderState, key = condition) { isDragging ->
+                                    val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+                                    ConditionItemView(
+                                        context = getConditionContext(instance),
+                                        condition = condition,
+                                        onEditCondition = { showEditConditionDialogFor = it },
+                                        modifier = Modifier.shadow(elevation.value)
+                                    )
+                                }
                             }
                         }
                         VerticalScrollbar(
@@ -325,21 +329,22 @@ class ConditionalTransformSet() : ConditionParentTransform(), TransformCustomIte
                         modifier = Modifier.weight(1f)
                     ) {
                         LazyColumn(
-                            modifier = Modifier.reorderable(
-                                state = transformReorderState,
-                                onMove = { from, to ->
-                                    transforms.move(from.index, to.index)
-                                }
-                            ),
+                            modifier = Modifier.reorderable(transformReorderState)
+                                .detectReorderAfterLongPress(transformReorderState),
                             state = transformReorderState.listState
                         ) {
                             items(transforms, { it }) { transform ->
-                                TransformItemView(
-                                    instance = instance,
-                                    transform = transform,
-                                    onEditTransform = { if (it is ConditionalTransform) showEditTransformDialogFor = it },
-                                    modifier = Modifier.reorderableItemModifier(transformReorderState, transform)
-                                )
+                                ReorderableItem(transformReorderState, key = transform) { isDragging ->
+                                    val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+                                    TransformItemView(
+                                        instance = instance,
+                                        transform = transform,
+                                        onEditTransform = {
+                                            if (it is ConditionalTransform) showEditTransformDialogFor = it
+                                        },
+                                        modifier = Modifier.shadow(elevation.value)
+                                    )
+                                }
                             }
                         }
                         VerticalScrollbar(

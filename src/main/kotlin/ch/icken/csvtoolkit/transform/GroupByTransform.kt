@@ -1,6 +1,6 @@
 package ch.icken.csvtoolkit.transform
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.ToolkitInstance
+import ch.icken.csvtoolkit.move
 import ch.icken.csvtoolkit.set
 import ch.icken.csvtoolkit.transform.GroupByTransform.GroupSerializer
 import ch.icken.csvtoolkit.transform.Transform.AggregateParentTransform
@@ -52,7 +54,6 @@ import ch.icken.csvtoolkit.transform.condition.Condition
 import ch.icken.csvtoolkit.ui.Confirmation
 import ch.icken.csvtoolkit.ui.DeleteAggregateConfirmation
 import ch.icken.csvtoolkit.ui.VerticalDivider
-import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -61,8 +62,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.burnoutcrew.reorderable.move
-import org.burnoutcrew.reorderable.rememberReorderState
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 
 @Serializable(with = GroupSerializer::class)
@@ -145,7 +147,6 @@ class GroupByTransform() : AggregateParentTransform(), TransformCustomItemView {
         return super.isValid(instance)
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun CustomItemView(
         instance: ToolkitInstance,
@@ -235,7 +236,9 @@ class GroupByTransform() : AggregateParentTransform(), TransformCustomItemView {
     ) {
         val scrollState = rememberLazyListState()
         var expanded by remember { mutableStateOf(false) }
-        val reorderState = rememberReorderState()
+        val reorderState = rememberReorderableLazyListState(onMove = { from, to ->
+            aggregates.move(from.index, to.index)
+        })
         var showEditAggregateDialogFor: Aggregate? by remember { mutableStateOf(null) }
         var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
 
@@ -312,21 +315,20 @@ class GroupByTransform() : AggregateParentTransform(), TransformCustomItemView {
                         modifier = Modifier.weight(1f)
                     ) {
                         LazyColumn(
-                            modifier = Modifier.reorderable(
-                                state = reorderState,
-                                onMove = { from, to ->
-                                    aggregates.move(from.index, to.index)
-                                }
-                            ),
+                            modifier = Modifier.reorderable(reorderState)
+                                .detectReorderAfterLongPress(reorderState),
                             state = reorderState.listState
                         ) {
                             items(aggregates, { it }) { aggregate ->
-                                AggregateItemView(
-                                    context = getAggregateContext(instance),
-                                    aggregate = aggregate,
-                                    onEditAggregate = { showEditAggregateDialogFor = it },
-                                    modifier = Modifier.reorderableItemModifier(reorderState, aggregate)
-                                )
+                                ReorderableItem(reorderState, key = aggregate) { isDragging ->
+                                    val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+                                    AggregateItemView(
+                                        context = getAggregateContext(instance),
+                                        aggregate = aggregate,
+                                        onEditAggregate = { showEditAggregateDialogFor = it },
+                                        modifier = Modifier.shadow(elevation.value)
+                                    )
+                                }
                             }
                         }
                         VerticalScrollbar(

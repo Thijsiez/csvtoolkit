@@ -3,9 +3,9 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.6.10"
-    id("org.jetbrains.compose") version "1.1.1"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("jvm") version "1.7.0"
+    id("org.jetbrains.compose") version "1.2.0-alpha01-dev755"
+    kotlin("plugin.serialization") version "1.7.0"
 }
 
 repositories {
@@ -21,7 +21,8 @@ dependencies {
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.5.1")
     implementation("org.apache.poi:poi-ooxml:5.2.2")
     implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.18.0")
-    implementation("org.burnoutcrew.composereorderable:reorderable:0.7.4")
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.6.4")
 }
 
 tasks.withType<KotlinCompile> {

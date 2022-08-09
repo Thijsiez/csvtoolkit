@@ -1,6 +1,6 @@
 package ch.icken.csvtoolkit.transform.condition
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberDialogState
 import ch.icken.csvtoolkit.flatMapToSet
+import ch.icken.csvtoolkit.move
 import ch.icken.csvtoolkit.transform.EditDialog
 import ch.icken.csvtoolkit.transform.Transform.ConditionFosterParent
 import ch.icken.csvtoolkit.transform.Transform.ConditionParentTransform
@@ -40,14 +42,14 @@ import ch.icken.csvtoolkit.transform.condition.Condition.ConditionParent
 import ch.icken.csvtoolkit.transform.condition.OrCondition.OrSerializer
 import ch.icken.csvtoolkit.ui.Confirmation
 import ch.icken.csvtoolkit.ui.DeleteConditionConfirmation
-import ch.icken.csvtoolkit.ui.reorderableItemModifier
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.burnoutcrew.reorderable.move
-import org.burnoutcrew.reorderable.rememberReorderState
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 
 @Serializable(with = OrSerializer::class)
@@ -76,7 +78,6 @@ class OrCondition(
         return true
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun CustomItemView(
         context: Context,
@@ -139,7 +140,9 @@ class OrCondition(
         onDelete: () -> Unit
     ) {
         var expanded by remember { mutableStateOf(false) }
-        val reorderState = rememberReorderState()
+        val reorderState = rememberReorderableLazyListState(onMove = { from, to ->
+            conditions.move(from.index, to.index)
+        })
         var showEditConditionDialogFor: Condition? by remember { mutableStateOf(null) }
         var showConfirmationDialogFor: Confirmation? by remember { mutableStateOf(null) }
 
@@ -164,21 +167,20 @@ class OrCondition(
                     modifier = Modifier.weight(1f)
                 ) {
                     LazyColumn(
-                        modifier = Modifier.reorderable(
-                            state = reorderState,
-                            onMove = { from, to ->
-                                conditions.move(from.index, to.index)
-                            }
-                        ),
+                        modifier = Modifier.reorderable(reorderState)
+                            .detectReorderAfterLongPress(reorderState),
                         state = reorderState.listState
                     ) {
                         items(conditions, { it }) { condition ->
-                            ConditionItemView(
-                                context = context,
-                                condition = condition,
-                                onEditCondition = { showEditConditionDialogFor = it },
-                                modifier = Modifier.reorderableItemModifier(reorderState, condition)
-                            )
+                            ReorderableItem(reorderState, key = condition) { isDragging ->
+                                val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+                                ConditionItemView(
+                                    context = context,
+                                    condition = condition,
+                                    onEditCondition = { showEditConditionDialogFor = it },
+                                    modifier = Modifier.shadow(elevation.value)
+                                )
+                            }
                         }
                     }
                     VerticalScrollbar(

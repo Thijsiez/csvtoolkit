@@ -58,7 +58,6 @@ fun ConditionItemView(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConditionDefaultItemView(
     context: Condition.Context,
