@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.6.10"
-    id("org.jetbrains.compose") version "1.0.1"
+    id("org.jetbrains.compose") version "1.1.1"
     kotlin("plugin.serialization") version "1.6.10"
 }
 
@@ -17,10 +17,10 @@ repositories {
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.materialIconsExtended)
-    implementation("com.charleskorn.kaml:kaml:0.40.0")
-    implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.2.0")
-    implementation("org.apache.poi:poi-ooxml:5.2.0")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.17.1")
+    implementation("com.charleskorn.kaml:kaml:0.46.0")
+    implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.5.1")
+    implementation("org.apache.poi:poi-ooxml:5.2.2")
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.18.0")
     implementation("org.burnoutcrew.composereorderable:reorderable:0.7.4")
 }
 

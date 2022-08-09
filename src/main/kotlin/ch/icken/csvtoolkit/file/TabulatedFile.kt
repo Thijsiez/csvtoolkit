@@ -107,6 +107,7 @@ abstract class TabulatedFile(
                 state = State.LOADED
             }
         }.getOrElse {
+            it.printStackTrace()
             launch(Dispatchers.Main) {
                 data = emptyList()
                 state = State.INVALID
@@ -251,7 +252,8 @@ abstract class TabulatedFile(
         vararg val extensions: String
     ) {
         CSV("CSV", "csv"),
-        EXCEL("Excel", "xls", "xlsx")
+        EXCEL("Excel", "xls", "xlsx"),
+        TSV("TSV", "tsv")
     }
 
     enum class State {

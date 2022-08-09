@@ -70,6 +70,7 @@ fun FileAddDialog(
                 path = fileName.text,
                 sheetName = fileTypeExcelSheetName
             )
+            Type.TSV -> TsvFile(path = fileName.text)
         }
     }
 
@@ -163,6 +164,7 @@ fun FileAddDialog(
                                 }
                             }
                         }
+                        else -> Unit
                     }
                 }
                 Text(
@@ -196,7 +198,7 @@ fun FileAddDialog(
     }
 
     if (showOpenFileDialog) {
-        OpenTabulatedFileDialog { selectedFile ->
+        OpenTabulatedFileDialog(fileType) { selectedFile ->
             showOpenFileDialog = false
             fileName = TextFieldValue(selectedFile.absolutePath)
             fileType = Type.values().find { selectedFile.extension in it.extensions } ?: Type.CSV
@@ -206,6 +208,7 @@ fun FileAddDialog(
 
 @Composable
 private fun OpenTabulatedFileDialog(
+    fileType: Type,
     parent: Frame? = null,
     onFileSelected: (selectedFile: File) -> Unit
 ) = AwtWindow(
@@ -219,11 +222,8 @@ private fun OpenTabulatedFileDialog(
             }
         }.apply {
             //This doesn't work in Windows
-            val extensions = Type.values().flatMap {
-                it.extensions.asList()
-            }
             setFilenameFilter { _, fileName ->
-                extensions.any {
+                fileType.extensions.any {
                     fileName.endsWith(".$it")
                 }
             }
